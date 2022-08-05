@@ -40,11 +40,13 @@ use Scalar::Util qw/looks_like_number/;
 use utf8;
 
 my $user = getlogin || getpwuid($<);
+# Base mod path
 my $base    = undef;
-my $game1   = 0;
-my $game2   = 0;
-my $pathgame1 = '';
-my $pathgame2 = '';
+# Swkotor directory
+my $gamePath = undef;
+# Install option
+my %nsOptions = (Count => -1, Index => 0);
+my $outputLogPath = undef;
 
 my $install_path = $base . '/tslpatchdata';
 my $install_info = 'info.rtf';
@@ -416,14 +418,34 @@ sub WriteInstallLog
 	print FH "\\b0 \\par }";
 	close FH;
 
+	WriteClosingInstallSummaryLog();
+}
+
+sub WriteInitialInstallSummaryLog
+{
+	my $install_name = $nsOptions{$nsOptions{Index}}{Name};
+	my $timestring = GetTime();
+
+	open FH, ">>", "$outputLogPath";
+	print FH "$timestring\n";
+	print FH "Installing mod from: $base:\n";
+	if ($nsOptions{Count} eq -1) {
+		print FH "No install option selected\n";
+	} else {
+		print FH "Install option $install_name selected\n";
+	}
+	close FH;
+}
+
+sub WriteClosingInstallSummaryLog
+{
 	# Write summary for each mod installed
-	my $dir = getcwd;
 	my @splitLogs = split('\n', $log_text);
 	my @message = split("Done", $splitLogs[-1]);
 
-	open FH, ">>", "$dir/installSummary.txt";
-	print FH "$base:\n";
-	print FH "@message[1]\n";
+	open FH, ">>", "$outputLogPath";
+	print FH "Finished\n";
+	print FH "@message[1]\n\n";
 	close FH;
 }
 
@@ -472,42 +494,35 @@ sub ProcessMessage
 
 # Basic functions
 sub Exit;
-sub Set_Base { $base = shift; $install_path = $base . '/tslpatchdata'; }
-
-sub SetPathFromIni
-{
-	my ($game, $path) = @_;
-	
-	if($game == 1)
-	{
-		$game1 = 1;
-		$pathgame1 = $path;
-	}
-	else
-	{
-		$game2 = 1;
-		$pathgame2 = $path;
-	}
+sub Set_Base
+{ 
+	$base = shift; 
+	$install_path = $base . '/tslpatchdata';
+	$gamePath = shift;
+	$outputLogPath = "$gamePath/TSLPatcherInstallSummary.txt"; 
 }
-
-sub GetPathForIni
+sub GetTime
 {
-	if($InstallInfo{LookNum} == 1)
-	{
-		return (1, $pathgame1);
-	}
-	else
-	{
-		return (2, $pathgame2);
-	}
+# Propertly format our time for the log...
+	my @time = localtime;
+	@time = @time[0 .. 5];
+	if($time[0] < 10) { $time[0] = '0' . $time[0]; }
+	if($time[1] < 10) { $time[1] = '0' . $time[1]; }
+	if($time[2] < 10) { $time[2] = '0' . $time[2]; }
+	$time[4] += 1;
+	$time[5] += 1900;
+	
+	my $timestring = undef;
+	if($time[2] > 12) { $timestring = ($time[2] - 12) . ":$time[1]:$time[0] PM on $time[4]/$time[3]/" . $time[5]; }
+	else              { $timestring = "$time[2]:$time[1]:$time[0] AM on $time[4]/$time[3]/" . ($time[5] + 1900); }
+
+	return $timestring;
 }
 
 # Namespaces functions
 sub ProcessNamespaces;
 sub SetInstallOption;
 sub RunInstallOption;
-
-my %nsOptions = (Count => -1, Index => 0);
 
 sub ProcessNamespaces
 {
@@ -546,88 +561,10 @@ sub RunInstallOption
 	$install_name  = $nsOptions{$nsOptions{Index}}{Name};
 
 	print "\nSelected $install_name\n";
-	print "\nInstall Path: $install_path\n";
-	print "\nInstall Info: $install_info\n";
-	print "\nInstall Ini: $install_ini\n";
+	print "Install Path: $install_path\n";
+	print "Install Info: $install_info\n";
+	print "Install Ini: $install_ini\n";
 
-
-	&ProcessInstallPath;
-}
-
-# Build Menu functions
-sub NeedBuildMenu;
-sub PopulateBuildMenu;
-sub BuildMenu_ScrollLeft;
-sub BuildMenu_ScrollRight;
-sub RunInstallPath;
-
-use File::Find;
-my @subdirs - ();
-my $subindex = 0;
-my $submax   = 13;
-my $subpage  = 1;
-my $pages    = 1;
-
-sub has_subdir 
-{
-    #The path of the file/dir being visited.
-    my $subdir = $File::Find::name;
-
-    #Ignore if this is a file.
-    return unless -d $subdir;
-
-    #Ignore if $subdir is $Dirname itself.
-    return if ( $subdir eq $base);
-	
-	return if ( $subdir eq 'backup');
-	
-	return if ( $subdir eq 'tslpatchdata');
-	
-	return if ( $subdir eq 'source');
-
-    # if we have reached here, this is a subdirector.
-    #print "Sub directory found - $subdir\n";
-	if(-e $subdir . '/tslpatchdata')
-	{
-		$subdir = substr($subdir, (length($base) + 1), (length($subdir) - length($base) - 1));
-		push(@subdirs, $subdir);
-	}
-}
-
-sub NeedBuildMenu
-{
-	my $value = 0;
-	
-	if(-e $install_path == 0)
-	{
-		find(\&has_subdir, $base);
-
-		if(scalar @subdirs > 0) { $value = 1; }
-	}
-	
-	return $value;
-}
-
-sub PopulateBuildMenu
-{
-	$pages = int((scalar @subdirs) / ($submax + 1));
-	if((int(scalar @subdirs) % ($submax + 1)) > 0) { $pages += 1; }
-	
-	SetInstallPath(0);
-}
-
-
-sub SetInstallPath
-{
-	my $index = shift;
-	#print "Base1 $base\n";
-	#$base = "$base\\" . @subdirs[$index];
-	#print "Base2 $base\n";
-	$install_path = $base . "/" . @subdirs[$index] . '/tslpatchdata';
-}
-
-sub RunInstallPath
-{
 	&ProcessInstallPath;
 }
 
@@ -700,8 +637,10 @@ sub ProcessInstallPath
 
 sub Install
 {
-	print "\n\nInstalling mod from: $base\n\n";
-	
+	print "\n~~~Installing~~~\n";
+
+	WriteInitialInstallSummaryLog();
+
 	# Finish grabbing the mod settings
 	$InstallInfo{Backups}      = $ini_object->get('Settings', 'BackupFiles', 1);
 	$InstallInfo{LookGame}     = $ini_object->get('Settings', 'LookupGameFolder', 1);
@@ -709,65 +648,12 @@ sub Install
 	$InstallInfo{SaveNss}      = $ini_object->get('Settings', 'SaveProcessedScripts', 0);
 	$InstallInfo{RequiredFile} = $ini_object->get('Settings', 'Required', '');
 	$InstallInfo{RequiredMsg}  = $ini_object->get('Settings', 'RequiredMsg', '');
-	
-	$InstallInfo{LookGame} = 0;
-	if($InstallInfo{LookNum} == 1 and $game1 == 1)
-	{
-		$install_dest_path = $pathgame1;
-	}
-	elsif($InstallInfo{LookNum} == 2 and $game2 == 1)
-	{
-		$install_dest_path = $pathgame2;
-	}
-#	elsif($InstallInfo{LookGame} == 1)
-#	{
-#		# Need to do the registry...
-#	}
-	else
-	{
-		$install_dest_path = $GUI->{mw}->chooseDirectory(-title=>'Select the KotOR ' . $InstallInfo{LookNum} . ' Main Directory...', -mustexist=>1, -parent=>$GUI->{mw});
 
-		if((-e $install_dest_path) == 0)
-		{
-			ProcessMessage(Format($Messages{LS_LOG_INSINVALIDDESTINATION}, $install_dest_path));
-			exit;
-		}
-		
-		if($install_dest_path =~ /(data|docs|launcher|lips|logs|miles|modules|movies|override|rims|saves|streammusic|streamsounds|streamwaves|texturepacks|utils|streamvoices)$/i)
-		{
-			$_ = $install_dest_path;
-			s/\/$1//;
-			$install_dest_path = $_;
-		}
-		
-		if($InstallInfo{LookNum} == 1)
-		{
-			$game1 = 1;
-			$pathgame1 = $install_dest_path;
-		}
-		else
-		{
-			$game2 = 1;
-			$pathgame2 = $install_dest_path;
-		}
-	}
+	$install_dest_path = $gamePath;
 	
 	ProcessMessage("Install path set to $install_dest_path.", LOG_LEVEL_VERBOSE);
-
-	# Propertly format our time for the log...
-	my @time = localtime;
-	@time = @time[0 .. 5];
-	if($time[0] < 10) { $time[0] = '0' . $time[0]; }
-	if($time[1] < 10) { $time[1] = '0' . $time[1]; }
-	if($time[2] < 10) { $time[2] = '0' . $time[2]; }
-	$time[4] += 1;
-	$time[5] += 1900;
 	
-	my $timestring = undef;
-	if($time[2] > 12) { $timestring = ($time[2] - 12) . ":$time[1]:$time[0] PM on $time[4]/$time[3]/" . $time[5]; }
-	else              { $timestring = "$time[2]:$time[1]:$time[0] AM on $time[4]/$time[3]/" . ($time[5] + 1900); }
-	
-	$timestring = Format($Messages{LS_LOG_RPOINSTALLSTART}, $timestring);
+	my $timestring = Format($Messages{LS_LOG_RPOINSTALLSTART}, GetTime());
 
 	if($InstallInfo{bInstall} == 1)
 	{
@@ -838,65 +724,12 @@ sub Uninstall
 	$InstallInfo{SaveNss}      = $ini_object->get('Settings', 'SaveProcessedScripts', 0);
 	$InstallInfo{RequiredFile} = $ini_object->get('Settings', 'Required', '');
 	$InstallInfo{RequiredMsg}  = $ini_object->get('Settings', 'RequiredMsg', '');
-	
-	$InstallInfo{LookGame} = 0;
-	if($InstallInfo{LookNum} == 1 and $game1 == 1)
-	{
-		$install_dest_path = $pathgame1;
-	}
-	elsif($InstallInfo{LookNum} == 2 and $game2 == 1)
-	{
-		$install_dest_path = $pathgame2;
-	}
-	elsif($InstallInfo{LookGame} == 1)
-	{
-		# Need to do the registry...
-	}
-	else
-	{
-		$install_dest_path = $GUI->{mw}->chooseDirectory(-title=>'Select the KotOR ' . $InstallInfo{LookNum} . ' Main Directory...', -mustexist=>1, -parent=>$GUI->{mw});
 
-		if((-e $install_dest_path) == 0)
-		{
-			ProcessMessage(Format($Messages{LS_LOG_INSINVALIDDESTINATION}, $install_dest_path));
-			exit;
-		}
-		
-		if($install_dest_path =~ /(data|docs|launcher|lips|logs|miles|modules|movies|override|rims|saves|streammusic|streamsounds|streamwaves|texturepacks|utils|streamvoices)$/i)
-		{
-			$_ = $install_dest_path;
-			s/\/$1//;
-			$install_dest_path = $_;
-		}
-		
-		if($InstallInfo{LookNum} == 1)
-		{
-			$game1 = 1;
-			$pathgame1 = $install_dest_path;
-		}
-		else
-		{
-			$game2 = 1;
-			$pathgame2 = $install_dest_path;
-		}
-	}
+	$install_dest_path = $gamePath;
 	
 	ProcessMessage("Install path set to $install_dest_path.", LOG_LEVEL_VERBOSE);
 
-	# Propertly format our time for the log...
-	my @time = localtime;
-	@time = @time[0 .. 5];
-	if($time[0] < 10) { $time[0] = '0' . $time[0]; }
-	if($time[1] < 10) { $time[1] = '0' . $time[1]; }
-	if($time[2] < 10) { $time[2] = '0' . $time[2]; }
-	$time[4] += 1;
-	$time[5] += 1900;
-	
-	my $timestring = undef;
-	if($time[2] > 12) { $timestring = ($time[2] - 12) . ":$time[1]:$time[0] PM on $time[4]/$time[3]/" . $time[5]; }
-	else              { $timestring = "$time[2]:$time[1]:$time[0] AM on $time[4]/$time[3]/" . ($time[5] + 1900); }
-	
-	$timestring = Format($Messages{LS_LOG_RPOINSTALLSTART}, $timestring);
+	my $timestring = Format($Messages{LS_LOG_RPOINSTALLSTART}, GetTime());
 
 	if($InstallInfo{bInstall} == 1)
 	{
@@ -2942,7 +2775,7 @@ sub DoGFFList
 		
 		@answer = ExecuteFile($filename, $PatchType, $Overwrite, $Destination);
 
-		print "\n$filename, $PatchType, $Overwrite, $Destination";
+		# print "\n$filename, $PatchType, $Overwrite, $Destination";
 		
 		if(($filename ne '') and ($answer[0] == 1))
 		{
@@ -3025,7 +2858,7 @@ sub DoGFFList
 						if($skip == 0)
 						{
 							my @v = ChangeGFFFieldValue($gff, $key, $value);
-							print "\n$gff, $key, $value";
+							# print "\n$gff, $key, $value";
 							if($v[0] == 1)
 							{
 								$uninstall_ini->set($un_section, $key, $v[1]);
@@ -3659,9 +3492,11 @@ sub ChangeGFFFieldValue
 	my $struct = $gff->{Main};
 	my $stype  = FIELD_STRUCT;
 	
-	# print "path1: $path\n";
+	# print "\npath0: $path\n";
 	$path =~ s#\\#\/#g;
+	# print "\npath1: $path\n";
 	my @paths = split(/\//, $path);
+	# print "\npath2: @paths\n";
 	$path = pop @paths;
 	my $old_value = undef;
 	
@@ -3800,8 +3635,18 @@ sub ChangeGFFFieldValue
 		my $ix = undef;
 		if(ref($struct->{Fields}) ne 'Bioware::GFF::Field')
 		{
-			print "\npath: $path";
-			$ix = $struct->get_field_ix_by_label($path);
+			# print "\npath3: $path\n";
+			# print "\nstart\n\n";
+			# print "$_: $struct->{$_}\n" for keys %$struct;
+			# print "\nend\n";
+			# print "Fields: $struct->{Fields}";
+			if (exists $struct->{Value}) {
+				$ix = $struct->{Value}->get_field_ix_by_label($path);
+			} else {
+				$ix = $struct->get_field_ix_by_label($path);
+			}
+			# $ix = $struct->{Value}->get_field_ix_by_label($path);
+			
 #			print "ix: $ix\n";
 			
 			if(defined($ix) == 0) { return (0, ''); }

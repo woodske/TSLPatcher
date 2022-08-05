@@ -21,17 +21,10 @@ my $installOption 	= $ARGV[2]; # Array index for mods with install options
 my $main_ini   		= Config::IniMan->new("$modPath/tslpatcher.ini");
 my $build_menu 		= 0;
 
-print "\n~~~ Game Path: $gamePath\n~~~ Mod Path: $modPath\n\n";
+print "\n~~~ Game Path: $gamePath\n~~~ Mod Path: $modPath\n";
 
 # Sets the base paths for the FunctionsCLI library
-TSLPatcher::FunctionsCLI::Set_Base($modPath);
-
-# Sets game paths
-TSLPatcher::FunctionsCLI::SetPathFromIni(1, $gamePath);
-TSLPatcher::FunctionsCLI::SetPathFromIni(2, $gamePath);
-
-# If there are install options, build menu == 1;
-# $build_menu = TSLPatcher::FunctionsCLI::NeedBuildMenu;
+TSLPatcher::FunctionsCLI::Set_Base($modPath, $gamePath);
 
 # With install options: Run ProcessNamespaces, SetInstallOption, RunInstallOption, Install
 # Without install options: Run ProcessInstallPath, Install
