@@ -7,7 +7,7 @@ TSLPatcherCLI provides the same functionality as TSLPatcher, but without the GUI
 ### Setup
 For Windows 10:
 * Install Strawberry Perl v5.16.3.1 (https://strawberryperl.com/releases.html)
-* Install dependencies by opening the Command Prompt as an administrator and running: `cpan install pp && cpan install experimental && cpan install Config::IniMan`
+* Install dependencies by opening the Command Prompt as an administrator and running: `cpan install pp && cpan install experimental && cpan install Config::IniMan && cpan install Data::Dumper`
 * In your File/Path.pm of the default Perl libraries (default path: C:\strawberry\perl\lib\File\Path.pm) on line 87 the function `getpwnam` does not work on windows. Make the following change:
     - Before: my $uid = (getpwnam $arg->{owner})[2];
     - After: my $uid = getlogin || (getpwnam $arg->{owner})[2];

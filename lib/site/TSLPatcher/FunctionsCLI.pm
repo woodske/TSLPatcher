@@ -10,6 +10,8 @@ use Bioware::TwoDA;
 
 use Config::IniMan;
 use Cwd;
+use File::Basename;
+use Data::Dumper;
 
 use constant {
 	LOG_LEVEL_VERBOSE     => 1,
@@ -1670,8 +1672,9 @@ sub DoInstallFiles
 						$ERF = Bioware::ERF->new();
 						$ERF->read_erf("$install_dest_path\\$folder");
 
-						$ERF_name = $ERF->{'erf_filename'};
-						$ERF_name = (split(/\//, $ERF_name))[-1];
+						$ERF_name = $ERF->{'erf_filename'};						
+						my($filename) = fileparse($ERF_name);
+						$ERF_name = $filename;
 						
 						if(($folder ~~ @ERFs) == 0) { push(@ERFs, $folder); }
 					}
@@ -1681,13 +1684,12 @@ sub DoInstallFiles
 						$ERF->read_rim("$install_dest_path\\$folder");
 
 						$ERF_name = $ERF->{'rim_filename'};
-						$ERF_name = (split(/\//, $ERF_name))[-1];
+						my($filename) = fileparse($ERF_name);
+						$ERF_name = $filename;
 						
 						if(($folder ~~ @ERFs) == 0) { push(@ERFs, $folder); }
 					}
 
-					print "\nInstallPath: $install_path";
-					print "\nfolder: $folder";
 					# Make a backup in the Backup folder
 					if((MakeBackup("$install_dest_path\\$folder", 'modules')) == 1)
 					{
@@ -2782,7 +2784,7 @@ sub DoGFFList
 			if((-e $answer[1]) == 0) { next; }
 			$gff = Bioware::GFF->new();
 			$result = $gff->read_gff_file($answer[1]);
-			
+
 			if($result == 1)
 			{
 				ProcessMessage(Format($Messages{LS_LOG_GFFMODIFYINGFILE}, (split(/\//, $answer[1]))[-1]), LOG_LEVEL_INFORMATION);
@@ -3635,22 +3637,16 @@ sub ChangeGFFFieldValue
 		my $ix = undef;
 		if(ref($struct->{Fields}) ne 'Bioware::GFF::Field')
 		{
-			# print "\npath3: $path\n";
-			# print "\nstart\n\n";
-			# print "$_: $struct->{$_}\n" for keys %$struct;
-			# print "\nend\n";
-			# print "Fields: $struct->{Fields}";
-			if (exists $struct->{Value}) {
-				$ix = $struct->{Value}->get_field_ix_by_label($path);
-			} else {
-				$ix = $struct->get_field_ix_by_label($path);
+			if (exists $struct->{Value} && !exists $struct->{Fields}) {
+				$struct = $struct->{Value};
 			}
-			# $ix = $struct->{Value}->get_field_ix_by_label($path);
+
+			$ix = $struct->get_field_ix_by_label($path);
 			
 #			print "ix: $ix\n";
 			
-			if(defined($ix) == 0) { return (0, ''); }
-			
+			if(defined($ix) == 0) { return (0, ''); }			
+		
 			$old_value = $struct->{Fields}[$ix]{Value};
 			$struct->{Fields}[$ix]{Value} = $value;
 		}

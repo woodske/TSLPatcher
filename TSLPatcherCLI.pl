@@ -21,6 +21,8 @@ my $installOption 	= $ARGV[2]; # Array index for mods with install options
 my $main_ini   		= Config::IniMan->new("$modPath/tslpatcher.ini");
 my $build_menu 		= 0;
 
+$gamePath =~ s/\\/\//g;
+$modPath =~ s/\\/\//g;
 print "\n~~~ Game Path: $gamePath\n~~~ Mod Path: $modPath\n";
 
 # Sets the base paths for the FunctionsCLI library
