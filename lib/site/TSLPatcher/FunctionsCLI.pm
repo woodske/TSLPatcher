@@ -943,7 +943,7 @@ sub ExecuteFile
 		if($patchtype eq 'fileGFFERF')
 		{
 			my $dest = "$install_dest_path/$destination";
-			
+
 			if((-e $dest) == 0)
 			{
 				ProcessMessage(Format($Messages{LS_LOG_FHDESTNOTFOUND}, $destination, $filename), LOG_LEVEL_ERROR);
@@ -983,6 +983,7 @@ sub ExecuteFile
 					$ERF_name = (split(/(\\|\/)/, $ERF_name))[-1];
 				}
 				
+				# exit();
 				# Make a backup in the Backup folder
 				if((MakeBackup("$dest", 'modules')) == 1)
 				{
