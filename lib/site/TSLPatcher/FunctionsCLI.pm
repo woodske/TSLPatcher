@@ -2757,7 +2757,7 @@ sub DoGFFList
 				push(@lines2, $_);
 			}
 		}
-		
+
 		if((scalar @lines2) == 0)
 		{
 			ProcessMessage(Format($Messages{LS_LOG_GFFNOINSTRUCTION}, $piece_value), LOG_LEVEL_ALERT);
@@ -2860,7 +2860,7 @@ sub DoGFFList
 						# lookhere
 						if($skip == 0)
 						{
-							my @v = ChangeGFFFieldValue($gff, $key, $value);
+							my @v = ChangeGFFFieldValue($gff, $key, $value);							
 							# print "\n$gff, $key, $value";
 							if($v[0] == 1)
 							{
@@ -3552,9 +3552,11 @@ sub ChangeGFFFieldValue
 				#if((scalar $struct->{Fields}) > 1)
 				{
 #					print "5 ";
-					$struct = $struct->{Fields}[$struct->get_field_ix_by_label($_)];
-					$stype = $struct->{Type};
-					if ($struct->{Type} == undef or $struct->{Type} eq '') { $stype = FIELD_STRUCT; }
+					if ($struct->{Fields}) {
+						$struct = $struct->{Fields}[$struct->get_field_ix_by_label($_)];
+						$stype = $struct->{Type};
+						if ($struct->{Type} == undef or $struct->{Type} eq '') { $stype = FIELD_STRUCT; }
+					}
 				}
 				else
 				{
@@ -3641,8 +3643,9 @@ sub ChangeGFFFieldValue
 			if (exists $struct->{Value} && !exists $struct->{Fields}) {
 				$struct = $struct->{Value};
 			}
-
-			$ix = $struct->get_field_ix_by_label($path);
+			if (exists $struct->{Fields}) {
+				$ix = $struct->get_field_ix_by_label($path);
+			}
 			
 #			print "ix: $ix\n";
 			

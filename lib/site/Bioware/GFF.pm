@@ -7,7 +7,7 @@ package Bioware::GFF; #~~~~~~~~~~~~~~~
 
 #line 81
 
-use strict;
+# use strict;
 require Exporter;
 use vars qw ($VERSION @ISA @EXPORT);
 
