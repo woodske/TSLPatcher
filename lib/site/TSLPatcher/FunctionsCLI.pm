@@ -2871,7 +2871,10 @@ sub DoGFFList
 							}
 							else
 							{
-								ProcessMessage(Format($Messages{LS_LOG_GFFINCORRECTLABEL}, $key, (split(/\//, $answer[1]))[-1]), LOG_LEVEL_ALERT);
+								# Ignore warnings for being unable to find '!Filename' in GFF file
+								if ($key ne "!Filename") {
+									ProcessMessage(Format($Messages{LS_LOG_GFFINCORRECTLABEL}, $key, (split(/\//, $answer[1]))[-1]), LOG_LEVEL_ALERT);
+								}							
 							}
 						}
 					}
