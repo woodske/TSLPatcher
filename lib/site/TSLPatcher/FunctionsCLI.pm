@@ -3832,6 +3832,13 @@ sub DoCompileFiles
 	{
 		make_path("$base/tslpatchdata/nsstemp", {chmod=>0777, user=>$user});
 	}
+
+	# A compile script was faililng because it could not find k_inc_utility in the nsstemp folder.
+	# Moving it here in case it is found.
+	my $k_inc_compile_path = $base . "/tslpatchdata/k_inc_utility.nss";
+	if((-e $k_inc_compile_path) == 1) {
+		File::Copy::copy($k_inc_compile_path, "$base/tslpatchdata/nsstemp/k_inc_utility.nss");
+	}
 	
 	my $NCSDestinsation = $ini_object->get('CompileList', '!DefaultDestination', 'override');
 	
@@ -3877,7 +3884,7 @@ sub DoCompileFiles
 				
 				ProcessMessage(Format($Messages{LS_LOG_NCSCOMPILINGSCRIPT}, (split(/\//, $ScriptInfo{ModFile}))[-1]), LOG_LEVEL_INFORMATION);
 				
-				my $p1 = getcwd;
+				my $p1 = $base;
 				chdir("$base/tslpatchdata");
 				my $string = qx/$run/;
 				chdir($p1);
