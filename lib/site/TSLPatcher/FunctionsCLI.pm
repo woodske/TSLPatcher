@@ -9,7 +9,6 @@ use Bioware::TLK;
 use Bioware::TwoDA;
 
 use Config::IniMan;
-use Cwd;
 use File::Basename;
 use Data::Dumper;
 

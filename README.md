@@ -27,3 +27,14 @@ Run the script locally: `perl TSLPatcherCLI.pl <swkotorDirectory> <modDirectory>
 * Example: `perl TSLPatcherCLI.pl "C:\Program Files (x86)\Steam\steamapps\common\swkotor" "C:\Mods\K1 Galaxy Map Fix Pack" 0`
 
 Build the script to .exe: `pp -o TSLPatcherCLI.exe TSLPatcherCLI.pl`
+
+## Useful Tools
+
+Below are some useful tools for debugging TSLPatcher
+
+* ERFEdit: https://deadlystream.com/files/file/499-erfedit/
+    - A tool that allows your to unpack and browse ERF/MOD/SAV/HAK/RIM format files
+* Xoreos Tools: https://xoreos.org/downloads/index.html
+    - A collection of tools to convert different Bioware file formats to XML (use the xoreos-tools download)
+* Data::Dumper: Installed via `cpan install Data::Dumper`
+    - A useful printing library for Perl that can print scalars or reference variables in a human readable format. Ex: `print Dumper($struct)`

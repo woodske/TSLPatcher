@@ -1,26 +1,15 @@
 # TSLPatcherCLI as designed in Perl...
-# Main script. Will use libraries TSLPatcher::GUI and TSLPatcher::FunctionsCLI.
+# Main script. Will use libraries TSLPatcher::FunctionsCLI.
 ###############################################################################
 
-use experimental qw/smartmatch autoderef switch/;
-
-use Config::IniMan;
-use Cwd;
-
-use lib 'lib/site';
+use lib 'lib/site'; # links the Bioware packages
 use TSLPatcher::FunctionsCLI;
-
-# Testing
-# my $gamePath   		= "C:/Users/kwood/Desktop/KotOR1"; # swkotor directory
-# my $modPath 		= "D:/compressedMods/K1 Galaxy Map Fix Pack"; # mod directory (folder where TSLPatcher lives)
-# my $installOption 	= 0; # Array index for mods with install options
 
 my $gamePath   		= $ARGV[0]; # swkotor directory
 my $modPath 		= $ARGV[1]; # mod directory (folder where TSLPatcher lives)
 my $installOption 	= $ARGV[2]; # Array index for mods with install options
-my $main_ini   		= Config::IniMan->new("$modPath/tslpatcher.ini");
-my $build_menu 		= 0;
 
+# Change directory dividers to forward slash
 $gamePath =~ s/\\/\//g;
 $modPath =~ s/\\/\//g;
 print "\n~~~ Game Path: $gamePath\n~~~ Mod Path: $modPath\n";
