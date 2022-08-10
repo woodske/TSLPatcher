@@ -4245,7 +4245,8 @@ sub DoCleanup
 		$ERF_name = undef;
 		foreach $ERF_name (@ERF_delete)
 		{
-#			print "deleting ERF_name: $ERF_name\n";
+			# print "deleting ERF_name: $ERF_name\n";
+			next if(!($ERF_name)); # Empty ERF_name will delete all data in the install path
 			opendir DIR, "$install_path/$ERF_name";
 			@files = grep { -f } map {"$install_path/$ERF_name/$_"} readdir DIR;
 			closedir DIR;
