@@ -429,11 +429,11 @@ sub WriteInitialInstallSummaryLog
 
 	open FH, ">>", "$outputLogPath";
 	print FH "$timestring\n";
-	print FH "Installing mod from: $base:\n";
+	print FH "Installing mod from: $base\n";
 	if ($nsOptions{Count} eq -1) {
 		print FH "No install option selected\n";
 	} else {
-		print FH "Install option $install_name selected\n";
+		print FH "Selected install option: $install_name\n";
 	}
 	close FH;
 }
