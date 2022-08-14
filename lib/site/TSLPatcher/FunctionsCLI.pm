@@ -1932,7 +1932,7 @@ sub Do2DAList
 			$two_da = Bioware::TwoDA->new();
 			
 			if($two_da->read2da($file) > 0)
-			{
+			{				
 				foreach($ini_object->section_params($filename))
 				{
 					if($_ ne '' and (($_ =~ /__SKIP__/) == 0) and (($_ =~ /^\;/) == 0))
@@ -1946,7 +1946,7 @@ sub Do2DAList
 					my $modifier = $ini_object->get($filename, $row_job, '');
 					
 					   if($row_job =~ /AddRow/)       { Add2daRow($two_da, $modifier);       }
-					elsif($rwo_job =! /DeleteRow/)    { Delete2daRow($two_da, $modifier);    }
+					elsif($rwo_job =~ /DeleteRow/)    { Delete2daRow($two_da, $modifier);    }
 					elsif($row_job =~ /ChangeRow/)    { Change2daRow($two_da, $modifier);    }
 					elsif($row_job =~ /AddColumn/)    { Add2daColumn($two_da, $modifier);    }
 					elsif($row_job =~ /DeleteColumn/) { Delete2daColumn($two_da, $modifier); }
@@ -2856,7 +2856,7 @@ sub DoGFFList
 							
 							$skip = 1;
 						}
-						# lookhere
+
 						if($skip == 0)
 						{
 							my @v = ChangeGFFFieldValue($gff, $key, $value);							
