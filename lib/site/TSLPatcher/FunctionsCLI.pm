@@ -10,7 +10,7 @@ use Bioware::TwoDA;
 
 use Config::IniMan;
 use File::Basename;
-use Data::Dumper;
+# use Data::Dumper;
 
 use constant {
 	LOG_LEVEL_VERBOSE     => 1,

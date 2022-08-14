@@ -38,3 +38,4 @@ Below are some useful tools for debugging TSLPatcher
     - A collection of tools to convert different Bioware file formats to XML (use the xoreos-tools download)
 * Data::Dumper: Installed via `cpan install Data::Dumper`
     - A useful printing library for Perl that can print scalars or reference variables in a human readable format. Ex: `print Dumper($struct)`
+    - Note: Make sure to comment out this library when making a release, it will get detected as a virus.
