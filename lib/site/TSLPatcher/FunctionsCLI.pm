@@ -10,7 +10,7 @@ use Bioware::TwoDA;
 
 use Config::IniMan;
 use File::Basename;
-# use Data::Dumper;
+use Data::Dumper;
 
 use constant {
 	LOG_LEVEL_VERBOSE     => 1,
@@ -2776,8 +2776,6 @@ sub DoGFFList
 		if($filename ne '') { $Overwrite = $ini_object->get($piece_value, '!ReplaceFile', 0); }
 		
 		@answer = ExecuteFile($filename, $PatchType, $Overwrite, $Destination);
-
-		# print "\n$filename, $PatchType, $Overwrite, $Destination";
 		
 		if(($filename ne '') and ($answer[0] == 1))
 		{
@@ -2860,7 +2858,6 @@ sub DoGFFList
 						if($skip == 0)
 						{
 							my @v = ChangeGFFFieldValue($gff, $key, $value);							
-							# print "\n$gff, $key, $value";
 							if($v[0] == 1)
 							{
 								$uninstall_ini->set($un_section, $key, $v[1]);
@@ -2876,6 +2873,12 @@ sub DoGFFList
 								}							
 							}
 						}
+					}
+
+					# dlg files are getting multiple byte fields appended to structs for some reason. Remove them here:
+					my $ext = lc(substr($filename, (length($filename) - 3), 3));
+					if ($ext eq 'dlg') {
+						RemoveDlgRepeatFields($gff->{Main});
 					}
 					
 					if($changes > 0)
@@ -3001,6 +3004,45 @@ sub DoGFFList
 	}
 }
 
+# Removes duplicate 'SoundExists' fields in .dlg files using recursion
+sub RemoveDlgRepeatFields
+{
+	# print("\n--- RemoveDlgRepeatFields ---\n");
+	my ($struct) = @_;
+	my $fieldCount = 0;
+
+	if (ref($struct->{Fields}) eq 'ARRAY') {
+		for my $field_item (@{$struct->{Fields}})
+		{
+			if(ref($field_item->{Value}) eq 'ARRAY') {
+				for my $value_item (@{$field_item->{Value}}) {
+					RemoveDlgRepeatFields($value_item);
+				}								
+			}
+			if(ref($field_item->{Fields}) eq 'ARRAY') {
+				for my $sub_field_item (@{$field_item->{Fields}}) {
+					RemoveDlgRepeatFields($sub_field_item);
+				}								
+			}
+			if($field_item->{Label} eq 'SoundExists') {
+				$fieldCount++;
+			}			
+		}
+	}
+
+	# lookhere
+	if($fieldCount > 1) {
+		my @duplicateFields = grep {
+			$_->{Label} eq "SoundExists"
+		} @{$struct->{Fields}};
+		for($i = 0; $i < $fieldCount - 1; $i++)
+		{
+			$struct->deleteField(@duplicateFields[$i]->{FieldIndex});
+		}
+	}
+
+}
+
 sub DeleteGFFField
 {
 	my ($gff, $section, $override_path) = @_;
@@ -3115,6 +3157,9 @@ sub DeleteGFFField
 sub AddGFFField
 {
 	my ($gff, $section, $override_path) = @_;
+
+	# print("\n--- start AddGFFField ---");
+	# print("\nSection: $section");
 	
 	my @lines1 = ();
 	foreach($ini_object->section_params($section))
@@ -3158,14 +3203,14 @@ sub AddGFFField
 				{
 					if(ref($struct->{Fields}) eq 'ARRAY')
 					{
-#						print "1 ";
+						# print "1 ";
 						$struct = $struct->{Fields}[$struct->get_field_ix_by_label($_)];
 						$stype = $struct->{Type};
 						if ($struct->{Type} == undef or $struct->{Type} eq '') { $stype = FIELD_STRUCT; }
 					}
 					else
 					{
-#						print "2 ";
+						# print "2 ";
 						$struct = $struct->{Fields}{Value}[$_];
 						$stype = $struct->{Type};
 						if ($struct->{Type} == undef or $struct->{Type} eq '') { $stype = FIELD_STRUCT; }
@@ -3173,7 +3218,7 @@ sub AddGFFField
 				}
 				else
 				{
-#					print "3 ";
+					# print "3 ";
 					$struct = $struct->{Fields};
 					$stype = $struct->{Type};
 					if ($struct->{Type} == undef or $struct->{Type} eq '') { $stype = FIELD_STRUCT; }
@@ -3244,7 +3289,7 @@ sub AddGFFField
 	{ $value = ProcessStrRefToken($value); }
 	
 	$value = GetMemoryToken($value);
-	
+
 	my $modified = 0;
 
 	if($stype != FIELD_LIST)
@@ -3442,15 +3487,42 @@ sub AddGFFField
 			if(($stype == FIELD_LIST) and (lc($value) eq 'listindex'))
 			{ $value = scalar @{$struct->{Value}}; }
 			
-			my $new_struct = Bioware::GFF::Struct->new();
-			$new_struct->{StructIndex} = $gff->{highest_struct};
-			$gff->{highest_struct} += 1;
-			$my_index = ($gff->{highest_struct} - 1);
+			my $new_struct = GetNewGFFStruct($gff);
 			
 			if(looks_like_number($value))
 			{ $new_struct->{'ID'} = $value; }
-			
-			push(@{$struct->{Value}}, $new_struct);
+
+			# Process sub fields
+			my @fields = ();
+			foreach($ini_object->section_params($section))
+			{
+				if($_ ne '' and (($_ =~ /__SKIP__/) == 0) and (($_ =~ /^\;/) == 0))
+				{
+					push(@fields, $_);
+				}
+			}
+
+			foreach $fieldKey (@fields)
+			{				
+				$fieldValue = $ini_object->get($section, $fieldKey, '');				
+				$fieldKey = GetMemoryToken($fieldKey);
+							
+				if(GetIsStringToken($fieldValue))
+				{ $fieldValue = ProcessStrRefToken($fieldValue); }
+				else
+				{ $fieldValue = GetMemoryToken($fieldValue); }
+
+				if(substr($fieldKey, 0, 8) eq 'AddField')
+				{
+					my @v = AddGFFSubField($new_struct, $fieldValue);
+					if($v[0] == 1)
+					{
+						ProcessMessage(Format($Messages{LS_LOG_GFFNEWFIELDADDED}, (split(/\//, $section))[-1]), LOG_LEVEL_INFORMATION);
+					}
+				}
+			}
+	
+			push(@{$struct->{Value}}, $new_struct);			
 		}
 		elsif($type eq 'List')
 		{ } # Do nothing.
@@ -3463,6 +3535,151 @@ sub AddGFFField
 	else { return 0; }
 	
 	return (1, $my_index);
+}
+
+# Generate new GFF struct
+sub GetNewGFFStruct
+{
+	my ($originalGff) = @_;
+	my $new_struct = Bioware::GFF::Struct->new();
+	$new_struct->{StructIndex} = $originalGff->{highest_struct};
+	$originalGff->{highest_struct} += 1;
+	$my_index = ($originalGff->{highest_struct} - 1);
+
+	return $new_struct;
+}
+
+# Adds additional fields to structs
+sub AddGFFSubField
+{
+	my ($structToPopulate, $section) = @_;
+
+	# print("\n--- start AddGFFSubField ---");
+	# print("\nSection: $section");
+	
+	# Get the config ini params for the section
+	my @iniSectionParams = ();
+	foreach($ini_object->section_params($section))
+	{
+		if($_ ne '' and (($_ =~ /__SKIP__/) == 0) and (($_ =~ /^\;/) == 0))
+		{
+			push(@iniSectionParams, $_);
+		}
+	}
+	
+	my $my_index = 0;
+	if((scalar @iniSectionParams) == 0)
+	{
+		ProcessMessage(Format($Messages{LS_LOG_GFFSECTIONMISSING}, $section), LOG_LEVEL_ALERT);
+		return 0;
+	}
+
+	# Process additional subfields
+	foreach $iniKey (@iniSectionParams)
+	{	
+		if(substr($iniKey, 0, 8) eq 'AddField')
+		{
+			$iniValue = $ini_object->get($section, $iniKey, '');				
+			$iniKey = GetMemoryToken($iniKey);
+						
+			if(GetIsStringToken($iniValue)) { 
+				$iniValue = ProcessStrRefToken($iniValue); 
+			} else { 
+				$iniValue = GetMemoryToken($iniValue);
+			}
+
+			my $new_struct = GetNewGFFStruct($structToPopulate);
+			my @v = AddGFFSubField($new_struct, $iniValue, '');
+			if($v[0] == 1)
+			{
+				push(@{$structToPopulate->{Value}}, $new_struct);
+				ProcessMessage(Format($Messages{LS_LOG_GFFNEWFIELDADDED}, (split(/\//, $section))[-1]), LOG_LEVEL_INFORMATION);
+			}
+		}
+	}
+
+	my $type   = $ini_object->get($section, 'FieldType', '');
+	my $key    = $ini_object->get($section, 'Label', '');
+	my $value  = $ini_object->get($section, 'Value', '');
+
+	# Create field based on type
+	if($type eq 'Byte')
+	{ $structToPopulate->createField('Type'=>FIELD_BYTE, 'Label'=>$key, 'Value'=>$value); }
+	elsif($type eq 'Char')
+	{ $structToPopulate->createField('Type'=>FIELD_CHAR, 'Label'=>$key, 'Value'=>$value); }
+	elsif($type eq 'Word')
+	{ $structToPopulate->createField('Type'=>FIELD_WORD, 'Label'=>$key, 'Value'=>$value); }
+	elsif($type eq 'Short')
+	{ $structToPopulate->createField('Type'=>FIELD_SHORT, 'Label'=>$key, 'Value'=>$value); }
+	elsif($type eq 'DWORD')
+	{ $structToPopulate->createField('Type'=>FIELD_DWORD, 'Label'=>$key, 'Value'=>$value); }
+	elsif($type eq 'Int')
+	{ $structToPopulate->createField('Type'=>FIELD_INT, 'Label'=>$key, 'Value'=>$value); }
+	elsif($type eq 'Int64')
+	{ $structToPopulate->createField('Type'=>FIELD_INT64, 'Label'=>$key, 'Value'=>$value); }
+	elsif($type eq 'Float')
+	{ $structToPopulate->createField('Type'=>FIELD_FLOAT, 'Label'=>$key, 'Value'=>$value); }
+	elsif($type eq 'Double')
+	{ $structToPopulate->createField('Type'=>FIELD_DOUBLE, 'Label'=>$key, 'Value'=>$value); }
+	elsif($type eq 'ExoString')
+	{ $structToPopulate->createField('Type'=>FIELD_CEXOSTRING, 'Label'=>$key, 'Value'=>$value); }
+	elsif($type eq 'ResRef')
+	{ $structToPopulate->createField('Type'=>FIELD_RESREF, 'Label'=>$key, 'Value'=>$value); }
+	elsif($type eq 'ExoLocString')
+	{
+		$value = $ini_object->get($section, 'StrRef', '-1');
+		
+		if(GetIsStringToken($value))
+		{ $value = ProcessStrRefToken($value); }
+		
+		$value = GetMemoryToken($value);
+		
+		if((looks_like_number($value) == 0) and ($value ne '-1'))
+		{
+			ProcessMessage(Format($Messages{LS_LOG_GFFINVALIDSTRREF}, $value), LOG_LEVEL_ALERT);
+			$value = -1;
+		}
+			
+		my $temp1 = undef;
+		my $values;
+		foreach $temp1 (@lines2)
+		{
+			if((length($temp1) > 4) and (substr($temp1, 0, 4) eq 'lang'))
+			{
+				$id = substr($temp1, 4, (length($temp1) - 4));
+				if(looks_like_number($id))
+				{
+					$value = $ini_object->get($section, $temp1, '');
+					
+					if(GetIsStringToken($value))
+					{ $value = ProcessStrRefToken($value); }
+					
+					$value = GetMemoryToken($value);
+					
+					my $new = Bioware::GFF::CExoLocSubString->new();
+						
+					$new->{'StringID'} = $id;
+					$new->{'Value'}    = $value;
+						
+					push(@$values, $new);
+				}
+			}
+		}
+		
+		$structToPopulate->createField('Type'=>FIELD_CEXOLOCSTRING, 'Label'=>$key, 'StringRef'=>$value, 'Substrings'=>@$values);
+	}
+	elsif($type eq 'List')
+	{ $structToPopulate->createField('Type'=>FIELD_LIST, 'Label'=>$key, 'Value'=>$value); print(Dumper($structToPopulate)); }
+	elsif($type eq 'Struct')
+	{ 
+		my $typeId = $ini_object->get($section, 'TypeId', '');
+		$structToPopulate->createField('Type'=>FIELD_STRUCT, 'Label'=>$key, 'Value'=>split(/\|/, $value), 'ID'=>$typeId);
+	}
+	elsif($type eq 'Orientation')
+	{ $structToPopulate->createField('Type'=>FIELD_ORIENTATION, 'Label'=>$key, 'Value'=>split(/\|/, $value)); }
+	elsif($type eq 'Position')
+	{ $structToPopulate->createField('Type'=>FIELD_POSITION, 'Label'=>$key, 'Value'=>split(/\|/, $value)); }
+	
 }
 
 sub DecodeFieldType
@@ -3493,6 +3710,10 @@ sub DecodeFieldType
 sub ChangeGFFFieldValue
 {
 	my ($gff, $path, $value) = @_;
+
+	# print("\n--- ChangeGFFFieldValue ---\n");
+	# print("path: $path\n");
+	# print("value: $value\n");
 	
 	my $struct = $gff->{Main};
 	my $stype  = FIELD_STRUCT;
@@ -3601,7 +3822,7 @@ sub ChangeGFFFieldValue
 #			}
 #		}
 	}
-	
+
 	# print "\npath: $path";
 	if(GetIsStringToken($value))
 	{ $value = ProcessStrRefToken($value); }
@@ -3649,7 +3870,7 @@ sub ChangeGFFFieldValue
 				$ix = $struct->get_field_ix_by_label($path);
 			}
 			
-#			print "ix: $ix\n";
+			# print "ix: $ix\n";
 			
 			if(defined($ix) == 0) { return (0, ''); }			
 		

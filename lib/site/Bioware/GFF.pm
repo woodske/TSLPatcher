@@ -614,11 +614,9 @@ sub deleteField{
     my $struct=shift;
     my $field_ix=shift;
     my @new_field_arr;
-    my $ix=0;
     while (scalar @{$struct->{Fields}}) {
         my $field=shift @{$struct->{Fields}};
-        push @new_field_arr,$field unless $ix==$field_ix;
-        $ix++;
+        push @new_field_arr,$field unless $field->{FieldIndex}==$field_ix;
     }
     $struct->{Fields}=[@new_field_arr];
 }
