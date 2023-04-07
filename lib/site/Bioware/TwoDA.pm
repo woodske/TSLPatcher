@@ -72,7 +72,7 @@ sub get_cell
 
 sub change_cell
 {
-# PURPOSE: To change the entry fro a cell of the loaded .2da file to the argument supplied
+# PURPOSE: To change the entry for a cell of the loaded .2da file to the argument supplied
 # INPUTS:  2DA Object, Row number, Column name, and new entry for the cell.
 # OUTPUTS: None
 

@@ -82,12 +82,6 @@ my $log_index  = 0;
 my $log_text   = 0;
 my $log_text_done = 0;
 my $log_first  = 1;
-
-my ($twoda_addnum,
-	$twoda_chanum,
-	$twoda_colnum,
-	$twoda_delcolnum,
-	$twoda_delnum) = (0, 0, 0, 0, 0);
 	
 my ($gff_delfnum,
 	$gff_delnum,
@@ -1909,9 +1903,7 @@ sub Do2DAList
 	}
 
 	foreach $filename (@lines1)
-	{
-		($twoda_addnum, $twoda_chanum, $twoda_colnum, $twoda_delcolnum, $twoda_delnum) = (0, 0, 0, 0, 0);
-		
+	{		
 		@lines2 = ();
 		
 		if($uninstall_ini->section_exists($filename) == 0)
@@ -2287,9 +2279,6 @@ sub Add2daRow
 			$twoda->change_cell($twoda->get_row_header($modify_row), $piece, $piece_value);
 		}
 	}
-	
-	$uninstall_ini->set($twoda->{filename}, "DeleteRow$twoda_delnum", $modify_row);
-	$twoda_delnum++;
 }
 
 sub Delete2daRow
@@ -2302,9 +2291,6 @@ sub Delete2daRow
 		ProcessMessage(Format($Messages{LS_LOG_2DADELETEROWERR}, $section), LOG_LEVEL_ALERT);
 		return -1;
 	}
-	
-	$uninstall_ini->set($twoda->{filename}, "AddRow$twoda_addnum", (split(/\./, $twoda->{filename}))[0] . "_row_delete_$section_0");
-	$twoda_addnum++;
 	
 	my $un_section = (split(/\./, $twoda->{filename}))[0] . "_row_delete_$section_0";
 	
@@ -2333,7 +2319,7 @@ sub Change2daRow
 			push (@data, $_);
 		}
 	}
-	
+
 	my $piece = undef;
 	my $index = -1;
 	foreach $piece (@data)
@@ -2352,11 +2338,6 @@ sub Change2daRow
 			{
 				$index = $piece_value;
 				
-				$uninstall_ini->set($twoda->{filename}, "ChangeRow$twoda_chanum", $section);
-				$uninstall_ini->add_section($section);
-				$uninstall_ini->set($section, 'RowIndex', $index);
-				$twoda_chanum++;
-				
 				ProcessMessage(Format($Messages{LS_LOG_2DAMODIFYLINE}, $index, $twoda->{'filename'}), LOG_LEVEL_VERBOSE);
 			}
 		}
@@ -2370,13 +2351,13 @@ sub Change2daRow
 			}
 			else
 			{
-				$index = $twoda->get_row_number($piece_value);
-				
-				$uninstall_ini->set($twoda->{filename}, "ChangeRow$twoda_chanum", $section);
-				$uninstall_ini->add_section($section);
-				$uninstall_ini->set($section, 'RowLabel', $index);
-				$twoda_chanum++;
-				
+				# Some ini files use the row number as row label
+				if (looks_like_number($piece_value)) {
+					$index = $piece_value;
+				} else {
+					$index = $twoda->get_row_number($piece_value);
+				}
+		
 				ProcessMessage(Format($Messages{LS_LOG_2DAMODIFYLINE}, $index, $twoda->{'filename'}), LOG_LEVEL_VERBOSE);
 			}
 		}
@@ -2387,12 +2368,7 @@ sub Change2daRow
 			if(($index < 0) or ($index >= $twoda->{rows}))
 			{ $index = -1}
 			else
-			{
-				$uninstall_ini->set($twoda->{filename}, "ChangeRow$twoda_chanum", $section);
-				$uninstall_ini->add_section($section);
-				$uninstall_ini->set($section, 'RowIndex', $index);
-				$twoda_chanum++;
-				
+			{	
 				ProcessMessage(Format($Messages{LS_LOG_2DAMODIFYLINE}, $index, $twoda->{'filename'}), LOG_LEVEL_VERBOSE);
 			}
 		}
@@ -2428,7 +2404,6 @@ sub Change2daRow
 				
 				$piece_value = GetMemoryToken($piece_value);
 				
-				$uninstall_ini->set($piece, $twoda->get_cell($twoda->get_row_header($index), $piece));
 				$twoda->change_cell($twoda->get_row_header($index), $piece, $piece_value);
 			}
 		}
@@ -2470,9 +2445,6 @@ sub Add2daColumn
 			
 			$column = $piece_value;
 			$twoda->add_column($column, $default);
-
-			$uninstall_ini->set($twoda->{filename}, "DeleteColumn$twoda_colnum", $column);
-			$twoda_colnum++;
 			
 			$added = 1;
 		}
@@ -2532,8 +2504,6 @@ sub Delete2daColumn
 	if($section ~~ @{$twoda->{columns}})
 	{
 		my $un_section = (split(/\./, $twoda->{filename}))[0] . "_col_delete_$section_0";
-		$uninstall_ini->set($twoda->{filename}, "AddColumn$twoda_delcolnum", $un_section);
-		$twoda_delcolnum++;
 		
 		if($uninstall_ini->section_exiss($un_section) == 0)
 		{ $uninstall_ini->add_section($un_section); }
@@ -2703,9 +2673,6 @@ sub Copy2daRow
 			$twoda->change_cell($twoda->get_row_header($index), $piece, $piece_value);
 		}
 	}
-	
-	$uninstall_ini->set($twoda->{filename}, "DeleteRow$twoda_delnum", $modify_row);
-	$twoda_delnum++;
 }
 
 # Functions to process the GFF List and sub-functions to help with that.
