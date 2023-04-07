@@ -82,10 +82,6 @@ my $log_index  = 0;
 my $log_text   = 0;
 my $log_text_done = 0;
 my $log_first  = 1;
-	
-my ($gff_delfnum,
-	$gff_delnum,
-	$gff_repnum) = (0, 0, 0);
 
 # Patcher Messages
 my %Messages = (
@@ -2709,7 +2705,6 @@ sub DoGFFList
 	my $value       = undef;
 	foreach $piece (@lines1)
 	{
-		($gff_delfnum, $gff_delnum, $gff_repnum) = (0, 0, 0);
 		
 		@lines2 = ();
 		$piece_value = $ini_object->get('GFFList', $piece, '');
@@ -2744,7 +2739,7 @@ sub DoGFFList
 		
 		@answer = ExecuteFile($filename, $PatchType, $Overwrite, $Destination);
 
-		# print "\n$filename, $PatchType, $Overwrite, $Destination";
+		# print "\n$filename, $PatchType, $Overwrite, $Destination, @answer";
 		
 		if(($filename ne '') and ($answer[0] == 1))
 		{
@@ -2755,10 +2750,6 @@ sub DoGFFList
 			if($result == 1)
 			{
 				ProcessMessage(Format($Messages{LS_LOG_GFFMODIFYINGFILE}, (split(/\//, $answer[1]))[-1]), LOG_LEVEL_INFORMATION);
-				if($Overwrite == 0)
-				{ $uninstall_ini->set('GFFList', "Replace$gff_repnum", (split(/\//, $answer[1]))[-1]); $gff_repnum++; }
-				else
-				{ $uninstall_ini->set('GFFList', "Delete$gff_delnum", (split(/\//, $answer[1]))[-1]); $gff_delnum++; }
 				
 				if((scalar @lines2) > 0)
 				{
@@ -2768,8 +2759,8 @@ sub DoGFFList
 					
 					foreach $key (@lines2)
 					{
-						$value = $ini_object->get($piece_value, $key, '');
-						
+						$value = $ini_object->get($piece_value, $key, '');				
+
 						$key = GetMemoryToken($key);
 						
 						$skip = 0;
@@ -2805,18 +2796,7 @@ sub DoGFFList
 						{
 							my @v = AddGFFField($gff, $value, '');
 							if($v[0] == 1)
-							{
-								$uninstall_ini->set($un_section, "DeleteField$gff_delfnum", "delete_gff$gff_delfnum" . "_section");
-
-								$uninstall_ini->add_section("delete_gff$gff_delfnum" . "_section");
-								$uninstall_ini->set("delete_gff$gff_delfnum" . "_section", 'Path', $ini_object->get($value, 'Path', ''));
-								$uninstall_ini->set("delete_gff$gff_delfnum" . "_section", 'FieldType', $ini_object->get($value, 'FieldType', ''));
-								$uninstall_ini->set("delete_gff$gff_delfnum" . "_section", 'Label', $ini_object->get($value, 'Label', ''));
-								$uninstall_ini->set("delete_gff$gff_delfnum" . "_section", 'Value', $ini_object->get($value, 'Value', ''));
-								$uninstall_ini->set("delete_gff$gff_delfnum" . "_section", 'StructIndex', $v[1]);
-								
-								$gff_delfnum++;
-								
+							{				
 								ProcessMessage(Format($Messages{LS_LOG_GFFNEWFIELDADDED}, (split(/\//, $answer[1]))[-1]), LOG_LEVEL_INFORMATION);
 								$changes++;
 							}
@@ -3082,7 +3062,7 @@ sub DeleteGFFField
 sub AddGFFField
 {
 	my ($gff, $section, $override_path) = @_;
-	
+
 	my @lines1 = ();
 	foreach($ini_object->section_params($section))
 	{
@@ -3416,6 +3396,13 @@ sub AddGFFField
 			
 			if(looks_like_number($value))
 			{ $new_struct->{'ID'} = $value; }
+
+			foreach $key (@lines1) {
+				if(substr($key, 0, 8) eq 'AddField') {
+					$subSection = $ini_object->get($section, $key, '');	
+					AddGFFSubFields($new_struct, $subSection, '');
+				}
+			}
 			
 			push(@{$struct->{Value}}, $new_struct);
 		}
@@ -3430,6 +3417,110 @@ sub AddGFFField
 	else { return 0; }
 	
 	return (1, $my_index);
+}
+
+sub AddGFFSubFields
+{
+	my ($struct, $section) = @_;
+
+	my $type   = $ini_object->get($section, 'FieldType', '');
+	my $key    = $ini_object->get($section, 'Label', '');
+	my $value  = $ini_object->get($section, 'Value', '');
+
+	if($type eq 'Byte')
+		{ $struct->createField('Type'=>FIELD_BYTE, 'Label'=>$key, 'Value'=>$value); }
+		elsif($type eq 'Char')
+		{ $struct->createField('Type'=>FIELD_CHAR, 'Label'=>$key, 'Value'=>$value); }
+		elsif($type eq 'Word')
+		{ $struct->createField('Type'=>FIELD_WORD, 'Label'=>$key, 'Value'=>$value); }
+		elsif($type eq 'Short')
+		{ $struct->createField('Type'=>FIELD_SHORT, 'Label'=>$key, 'Value'=>$value); }
+		elsif($type eq 'DWORD')
+		{ $struct->createField('Type'=>FIELD_DWORD, 'Label'=>$key, 'Value'=>$value); }
+		elsif($type eq 'Int')
+		{ $struct->createField('Type'=>FIELD_INT, 'Label'=>$key, 'Value'=>$value); }
+		elsif($type eq 'Int64')
+		{ $struct->createField('Type'=>FIELD_INT64, 'Label'=>$key, 'Value'=>$value); }
+		elsif($type eq 'Float')
+		{ $struct->createField('Type'=>FIELD_FLOAT, 'Label'=>$key, 'Value'=>$value); }
+		elsif($type eq 'Double')
+		{ $struct->createField('Type'=>FIELD_DOUBLE, 'Label'=>$key, 'Value'=>$value); }
+		elsif($type eq 'ExoString')
+		{ $struct->createField('Type'=>FIELD_CEXOSTRING, 'Label'=>$key, 'Value'=>$value); }
+		elsif($type eq 'ResRef')
+		{ $struct->createField('Type'=>FIELD_RESREF, 'Label'=>$key, 'Value'=>$value); }
+		elsif($type eq 'ExoLocString')
+		{
+			$value = $ini_object->get($section, 'StrRef', '-1');
+			
+			if(GetIsStringToken($value))
+			{ $value = ProcessStrRefToken($value); }
+			
+			$value = GetMemoryToken($value);
+			
+			if((looks_like_number($value) == 0) and ($value ne '-1'))
+			{
+				ProcessMessage(Format($Messages{LS_LOG_GFFINVALIDSTRREF}, $value), LOG_LEVEL_ALERT);
+				$value = -1;
+			}
+			
+			
+			my $temp1 = undef;
+			my $values;
+			foreach $temp1 (@lines2)
+			{
+				if((length($temp1) > 4) and (substr($temp1, 0, 4) eq 'lang'))
+				{
+					$id = substr($temp1, 4, (length($temp1) - 4));
+					if(looks_like_number($id))
+					{
+						$value = $ini_object->get($section, $temp1, '');
+						
+						if(GetIsStringToken($value))
+						{ $value = ProcessStrRefToken($value); }
+						
+						$value = GetMemoryToken($value);
+						
+						my $new = Bioware::GFF::CExoLocSubString->new();
+							
+						$new->{'StringID'} = $id;
+						$new->{'Value'}    = $value;
+							
+						push(@$values, $new);
+					}
+				}
+			}
+			
+			$struct->createField('Type'=>FIELD_CEXOLOCSTRING, 'Label'=>$key, 'StringRef'=>$value, 'Substrings'=>@$values);
+		}
+		elsif($type eq 'Orientation')
+		{ $struct->createField('Type'=>FIELD_ORIENTATION, 'Label'=>$key, 'Value'=>split(/\|/, $value)); }
+		elsif($type eq 'Position')
+		{ $struct->createField('Type'=>FIELD_POSITION, 'Label'=>$key, 'Value'=>split(/\|/, $value)); }
+		elsif($type eq 'Struct')
+		{
+			$value = $ini_object->get($section, 'TypeId', '');
+			
+			if(($stype == FIELD_LIST) and (lc($value) eq 'listindex'))
+			{ $value = scalar @{$struct->{Value}}; }
+			
+			my $new_struct = Bioware::GFF::Struct->new();
+			$new_struct->{StructIndex} = $gff->{highest_struct};
+			$gff->{highest_struct} += 1;
+			$my_index = ($gff->{highest_struct} - 1);
+			
+			if(looks_like_number($value))
+			{ $new_struct->{'ID'} = $value; }
+			
+			push(@{$struct->{Value}}, $new_struct);
+		}
+		elsif($type eq 'List')
+		{ } # Do nothing.
+		else
+		{
+			ProcessMessage(Format($Messages{LS_LOG_GFFINVALIDTYPEDATA}, $type, $section, (split(/(\\|\/)/, $gff->{filename}))[-1]), LOG_LEVEL_ALERT);
+			return 0;
+		}
 }
 
 sub DecodeFieldType
