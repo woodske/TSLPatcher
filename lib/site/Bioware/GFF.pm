@@ -155,8 +155,43 @@ sub read_gff_file($) {
     $gff->{version}=$$header_ref{'Version'};
 	$gff->{filename}=$fn;
     Bioware::GFF::gffReader::ReadStruct($fh,$header_ref,$gff->{Main},0, $gff);
+    purge_gff_duplicates($gff);
     close $fh;
     return 1;
+}
+
+# TSLPatcher 1.2.9b removed duplicate fields (primarily from .dlg files). I don't know if it was intentional or not, but tried to reproduce it here. 
+sub purge_gff_duplicates {
+    my ($gff)=@_;
+
+    if (ref $gff eq 'Bioware::GFF' && exists $gff->{'FieldList'}) {
+        purge_gff_duplicates($gff->{'FieldList'}[0]);
+    }
+
+    if (ref $gff eq 'ARRAY') {
+        my %labels_seen;
+        my @result;
+        foreach my $element (@$gff) {
+            if (exists $element->{'Value'} && ref $element->{'Value'} eq 'ARRAY') {
+                purge_gff_duplicates($element->{'Value'});
+            }
+            if (exists $element->{'Fields'} && ref $element->{'Fields'} eq 'ARRAY') {
+                purge_gff_duplicates($element->{'Fields'});
+            }
+            if (exists $element->{'Label'}) {
+                my $var = $element->{'Label'};
+                my $label = $element->{'Label'};
+                if (!exists($labels_seen{$label})) {
+                    push(@result, $element);
+                    $labels_seen{$label} = 1;
+                }
+            } else {
+                push(@result, $element);
+            }
+        }
+
+        @$gff = @result;
+    }
 }
 
 sub read_gff_scalar($) {
