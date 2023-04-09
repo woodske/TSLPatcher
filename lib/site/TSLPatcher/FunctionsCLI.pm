@@ -3625,8 +3625,8 @@ sub ChangeGFFFieldValue
 	$path = pop @paths;
 	my $old_value = undef;
 
-	# TSL Patcher 1.2.9b saved all script names as lowercase. No idea if it makes a difference.
-	if ($path eq 'Script') {
+	# TSL Patcher 1.2.9b saved all script names and sounds as lowercase. No idea if it makes a difference.
+	if ($path eq 'Script' || $path eq 'Sound') {
 		$value = lc($value);
 	}
 	
