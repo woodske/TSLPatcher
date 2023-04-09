@@ -615,10 +615,16 @@ sub createField {
     my $new_field;
     if ($testhash{'Type'}==12) { #special case for CExoLocString
         my $cexoloc;
-        my $cexolocsub = undef;
-        if ($testhash{'StringRef'}==-1) { #print "Test Hash says: " . $testhash{'StringRef'} . "\n";
-            $cexolocsub=Bioware::GFF::CExoLocSubString->new('StringID'=>0,'Value'=>$testhash{'Value'});
-        }
+        my $cexolocsub = $testhash{'Substrings'};
+
+        ### TSLPatcher 1.2.9b does not add substrings to some mods that use ExoLocString (tested with [K1]_Dodonna's_Transmission_v1.1)
+        ### Not sure what this does, but commenting it out until it breaks something. Using the passed substring argument instead.
+
+        # my $cexolocsub = undef;
+        # if ($testhash{'StringRef'}==-1) { #print "Test Hash says: " . $testhash{'StringRef'} . "\n";
+        #     $cexolocsub=Bioware::GFF::CExoLocSubString->new('StringID'=>0,'Value'=>$testhash{'Value'});
+        # }
+
         if(defined($cexolocsub))
         {
             $cexoloc= Bioware::GFF::CExoLocString->new('StringRef'=>$testhash{'StringRef'},'Substrings'=>[$cexolocsub]);

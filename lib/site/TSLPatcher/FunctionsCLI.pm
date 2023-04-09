@@ -3419,7 +3419,21 @@ sub AddGFFField
 			push(@{$struct->{Value}}, $new_struct);
 		}
 		elsif($type eq 'List')
-		{ } # Do nothing.
+		{ 
+			# Set FieldList value as empty array
+			# Recurse any AddField ini params
+			
+			$struct->createField('Type'=>FIELD_LIST, 'Label'=>$key, 'Value'=>[]);
+			$myField = $struct->get_field_by_label($key);
+
+			foreach my $key (@iniFields) {
+				if(substr($key, 0, 8) eq 'AddField') {
+					# Get the ini sub section for this AddField and recurse
+					$subSection = $ini_object->get($section, $key, '');	
+					AddGFFSubFields($myField, $subSection, '');	
+				}
+			}
+		}
 		else
 		{
 			ProcessMessage(Format($Messages{LS_LOG_GFFINVALIDTYPEDATA}, $type, $section, (split(/(\\|\/)/, $gff->{filename}))[-1]), LOG_LEVEL_ALERT);
@@ -3434,6 +3448,15 @@ sub AddGFFField
 sub AddGFFSubFields
 {
 	my ($struct, $section) = @_;
+
+	my @iniFields = ();
+	foreach($ini_object->section_params($section))
+	{
+		if($_ ne '' and (($_ =~ /__SKIP__/) == 0) and (($_ =~ /^\;/) == 0))
+		{
+			push(@iniFields, $_);
+		}
+	}
 
 	my $type   = $ini_object->get($section, 'FieldType', '');
 	my $key    = $ini_object->get($section, 'Label', '');
@@ -3475,7 +3498,7 @@ sub AddGFFSubFields
 				ProcessMessage(Format($Messages{LS_LOG_GFFINVALIDSTRREF}, $value), LOG_LEVEL_ALERT);
 				$value = -1;
 			}
-			
+
 			
 			my $temp1 = undef;
 			my $values;
@@ -3529,11 +3552,32 @@ sub AddGFFSubFields
 			
 			if(looks_like_number($value))
 			{ $new_struct->{'ID'} = $value; }
+
+			foreach my $key (@iniFields) {
+				if(substr($key, 0, 8) eq 'AddField') {
+					$subSection = $ini_object->get($section, $key, '');	
+					AddGFFSubFields($new_struct, $subSection, '');
+				}
+			}
 			
 			push(@{$struct->{Value}}, $new_struct);
 		}
 		elsif($type eq 'List')
-		{ } # Do nothing.
+		{ 
+			# Set FieldList value as empty array
+			# Recurse any AddField ini params
+			
+			$struct->createField('Type'=>FIELD_LIST, 'Label'=>$key, 'Value'=>[]);
+			$myField = $struct->get_field_by_label($key);
+
+			foreach my $key (@iniFields) {
+				if(substr($key, 0, 8) eq 'AddField') {
+					# Get the ini sub section for this AddField and recurse
+					$subSection = $ini_object->get($section, $key, '');	
+					AddGFFSubFields($myField, $subSection, '');	
+				}
+			}
+		}
 		else
 		{
 			ProcessMessage(Format($Messages{LS_LOG_GFFINVALIDTYPEDATA}, $type, $section, (split(/(\\|\/)/, $gff->{filename}))[-1]), LOG_LEVEL_ALERT);
