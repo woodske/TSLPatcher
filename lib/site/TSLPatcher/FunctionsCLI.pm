@@ -3280,9 +3280,15 @@ sub AddGFFField
 				}
 			}
 			elsif(($type eq 'Orientation') and ($field->{Type} eq FIELD_ORIENTATION))
-			{ $field->{Value} = split(/\|/, $value); }
+			{ 
+				my @splitValue = split(/\|/, $value);
+				$field->{Value} = \@splitValue; 
+			}
 			elsif(($type eq 'Position') and ($field->{Type} eq FIELD_POSITION))
-			{ $field->{Value} = split(/\|/, $value); }
+			{ 
+				my @splitValue = split(/\|/, $value);
+				$field->{Value} = \@splitValue;  
+			}
 			elsif(($type eq 'Struct') and ($field->{Type} eq FIELD_STRUCT))
 			{
 				$value = $ini_object->get($section, 'TypeId', '');
@@ -3379,9 +3385,15 @@ sub AddGFFField
 			$struct->createField('Type'=>FIELD_CEXOLOCSTRING, 'Label'=>$key, 'StringRef'=>$value, 'Substrings'=>@$values);
 		}
 		elsif($type eq 'Orientation')
-		{ $struct->createField('Type'=>FIELD_ORIENTATION, 'Label'=>$key, 'Value'=>split(/\|/, $value)); }
+		{ 
+			my @splitValue = split(/\|/, $value);
+			$struct->createField('Type'=>FIELD_ORIENTATION, 'Label'=>$key, 'Value'=>\@splitValue); 
+		}
 		elsif($type eq 'Position')
-		{ $struct->createField('Type'=>FIELD_POSITION, 'Label'=>$key, 'Value'=>split(/\|/, $value)); }
+		{ 
+			my @splitValue = split(/\|/, $value);
+			$struct->createField('Type'=>FIELD_POSITION, 'Label'=>$key, 'Value'=>\@splitValue); 
+		}
 		elsif($type eq 'Struct')
 		{
 			$value = $ini_object->get($section, 'TypeId', '');
@@ -3494,9 +3506,15 @@ sub AddGFFSubFields
 			$struct->createField('Type'=>FIELD_CEXOLOCSTRING, 'Label'=>$key, 'StringRef'=>$value, 'Substrings'=>@$values);
 		}
 		elsif($type eq 'Orientation')
-		{ $struct->createField('Type'=>FIELD_ORIENTATION, 'Label'=>$key, 'Value'=>split(/\|/, $value)); }
+		{ 
+			my @splitValue = split(/\|/, $value);
+			$struct->createField('Type'=>FIELD_ORIENTATION, 'Label'=>$key, 'Value'=>\@splitValue); 
+		}
 		elsif($type eq 'Position')
-		{ $struct->createField('Type'=>FIELD_POSITION, 'Label'=>$key, 'Value'=>split(/\|/, $value)); }
+		{ 
+			my @splitValue = split(/\|/, $value);
+			$struct->createField('Type'=>FIELD_POSITION, 'Label'=>$key, 'Value'=>\@splitValue); 
+		}
 		elsif($type eq 'Struct')
 		{
 			$value = $ini_object->get($section, 'TypeId', '');
