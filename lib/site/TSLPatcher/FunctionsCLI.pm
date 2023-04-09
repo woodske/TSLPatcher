@@ -3776,8 +3776,14 @@ sub ChangeGFFFieldValue
 			
 #			print "ix: $ix\n";
 			
-			if(defined($ix) == 0) { return (0, ''); }			
+			if(defined($ix) == 0) { return (0, ''); }	
 		
+			# Need to split position and orientation value into array
+			if ($path eq 'Position' || $path eq 'Orientation') {
+				my @splitValue = split(/\|/, $value);
+				$value = \@splitValue;
+			}
+			
 			$old_value = $struct->{Fields}[$ix]{Value};
 			$struct->{Fields}[$ix]{Value} = $value;
 		}
