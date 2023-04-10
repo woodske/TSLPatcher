@@ -3463,126 +3463,126 @@ sub AddGFFSubFields
 	my $value  = $ini_object->get($section, 'Value', '');
 
 	if($type eq 'Byte')
-		{ $struct->createField('Type'=>FIELD_BYTE, 'Label'=>$key, 'Value'=>$value); }
-		elsif($type eq 'Char')
-		{ $struct->createField('Type'=>FIELD_CHAR, 'Label'=>$key, 'Value'=>$value); }
-		elsif($type eq 'Word')
-		{ $struct->createField('Type'=>FIELD_WORD, 'Label'=>$key, 'Value'=>$value); }
-		elsif($type eq 'Short')
-		{ $struct->createField('Type'=>FIELD_SHORT, 'Label'=>$key, 'Value'=>$value); }
-		elsif($type eq 'DWORD')
-		{ $struct->createField('Type'=>FIELD_DWORD, 'Label'=>$key, 'Value'=>$value); }
-		elsif($type eq 'Int')
-		{ $struct->createField('Type'=>FIELD_INT, 'Label'=>$key, 'Value'=>$value); }
-		elsif($type eq 'Int64')
-		{ $struct->createField('Type'=>FIELD_INT64, 'Label'=>$key, 'Value'=>$value); }
-		elsif($type eq 'Float')
-		{ $struct->createField('Type'=>FIELD_FLOAT, 'Label'=>$key, 'Value'=>$value); }
-		elsif($type eq 'Double')
-		{ $struct->createField('Type'=>FIELD_DOUBLE, 'Label'=>$key, 'Value'=>$value); }
-		elsif($type eq 'ExoString')
+	{ $struct->createField('Type'=>FIELD_BYTE, 'Label'=>$key, 'Value'=>$value); }
+	elsif($type eq 'Char')
+	{ $struct->createField('Type'=>FIELD_CHAR, 'Label'=>$key, 'Value'=>$value); }
+	elsif($type eq 'Word')
+	{ $struct->createField('Type'=>FIELD_WORD, 'Label'=>$key, 'Value'=>$value); }
+	elsif($type eq 'Short')
+	{ $struct->createField('Type'=>FIELD_SHORT, 'Label'=>$key, 'Value'=>$value); }
+	elsif($type eq 'DWORD')
+	{ $struct->createField('Type'=>FIELD_DWORD, 'Label'=>$key, 'Value'=>$value); }
+	elsif($type eq 'Int')
+	{ $struct->createField('Type'=>FIELD_INT, 'Label'=>$key, 'Value'=>$value); }
+	elsif($type eq 'Int64')
+	{ $struct->createField('Type'=>FIELD_INT64, 'Label'=>$key, 'Value'=>$value); }
+	elsif($type eq 'Float')
+	{ $struct->createField('Type'=>FIELD_FLOAT, 'Label'=>$key, 'Value'=>$value); }
+	elsif($type eq 'Double')
+	{ $struct->createField('Type'=>FIELD_DOUBLE, 'Label'=>$key, 'Value'=>$value); }
+	elsif($type eq 'ExoString')
 		{ $struct->createField('Type'=>FIELD_CEXOSTRING, 'Label'=>$key, 'Value'=>$value); }
-		elsif($type eq 'ResRef')
-		{ $struct->createField('Type'=>FIELD_RESREF, 'Label'=>$key, 'Value'=>$value); }
-		elsif($type eq 'ExoLocString')
+	elsif($type eq 'ResRef')
+	{ $struct->createField('Type'=>FIELD_RESREF, 'Label'=>$key, 'Value'=>$value); }
+	elsif($type eq 'ExoLocString')
+	{
+		$value = $ini_object->get($section, 'StrRef', '-1');
+		
+		if(GetIsStringToken($value))
+		{ $value = ProcessStrRefToken($value); }
+		
+		$value = GetMemoryToken($value);
+		
+		if((looks_like_number($value) == 0) and ($value ne '-1'))
 		{
-			$value = $ini_object->get($section, 'StrRef', '-1');
-			
-			if(GetIsStringToken($value))
-			{ $value = ProcessStrRefToken($value); }
-			
-			$value = GetMemoryToken($value);
-			
-			if((looks_like_number($value) == 0) and ($value ne '-1'))
-			{
-				ProcessMessage(Format($Messages{LS_LOG_GFFINVALIDSTRREF}, $value), LOG_LEVEL_ALERT);
-				$value = -1;
-			}
+			ProcessMessage(Format($Messages{LS_LOG_GFFINVALIDSTRREF}, $value), LOG_LEVEL_ALERT);
+			$value = -1;
+		}
 
-			
-			my $temp1 = undef;
-			my $values;
-			foreach $temp1 (@lines2)
+		
+		my $temp1 = undef;
+		my $values;
+		foreach $temp1 (@lines2)
+		{
+			if((length($temp1) > 4) and (substr($temp1, 0, 4) eq 'lang'))
 			{
-				if((length($temp1) > 4) and (substr($temp1, 0, 4) eq 'lang'))
+				$id = substr($temp1, 4, (length($temp1) - 4));
+				if(looks_like_number($id))
 				{
-					$id = substr($temp1, 4, (length($temp1) - 4));
-					if(looks_like_number($id))
-					{
-						$value = $ini_object->get($section, $temp1, '');
+					$value = $ini_object->get($section, $temp1, '');
+					
+					if(GetIsStringToken($value))
+					{ $value = ProcessStrRefToken($value); }
+					
+					$value = GetMemoryToken($value);
+					
+					my $new = Bioware::GFF::CExoLocSubString->new();
 						
-						if(GetIsStringToken($value))
-						{ $value = ProcessStrRefToken($value); }
+					$new->{'StringID'} = $id;
+					$new->{'Value'}    = $value;
 						
-						$value = GetMemoryToken($value);
-						
-						my $new = Bioware::GFF::CExoLocSubString->new();
-							
-						$new->{'StringID'} = $id;
-						$new->{'Value'}    = $value;
-							
-						push(@$values, $new);
-					}
+					push(@$values, $new);
 				}
 			}
-			
-			$struct->createField('Type'=>FIELD_CEXOLOCSTRING, 'Label'=>$key, 'StringRef'=>$value, 'Substrings'=>@$values);
 		}
-		elsif($type eq 'Orientation')
-		{ 
-			my @splitValue = split(/\|/, $value);
-			$struct->createField('Type'=>FIELD_ORIENTATION, 'Label'=>$key, 'Value'=>\@splitValue); 
-		}
-		elsif($type eq 'Position')
-		{ 
-			my @splitValue = split(/\|/, $value);
-			$struct->createField('Type'=>FIELD_POSITION, 'Label'=>$key, 'Value'=>\@splitValue); 
-		}
-		elsif($type eq 'Struct')
-		{
-			$value = $ini_object->get($section, 'TypeId', '');
-			
-			if(($stype == FIELD_LIST) and (lc($value) eq 'listindex'))
-			{ $value = scalar @{$struct->{Value}}; }
-			
-			my $new_struct = Bioware::GFF::Struct->new();
-			$new_struct->{StructIndex} = $gff->{highest_struct};
-			$gff->{highest_struct} += 1;
-			$my_index = ($gff->{highest_struct} - 1);
-			
-			if(looks_like_number($value))
-			{ $new_struct->{'ID'} = $value; }
+		
+		$struct->createField('Type'=>FIELD_CEXOLOCSTRING, 'Label'=>$key, 'StringRef'=>$value, 'Substrings'=>@$values);
+	}
+	elsif($type eq 'Orientation')
+	{ 
+		my @splitValue = split(/\|/, $value);
+		$struct->createField('Type'=>FIELD_ORIENTATION, 'Label'=>$key, 'Value'=>\@splitValue); 
+	}
+	elsif($type eq 'Position')
+	{ 
+		my @splitValue = split(/\|/, $value);
+		$struct->createField('Type'=>FIELD_POSITION, 'Label'=>$key, 'Value'=>\@splitValue); 
+	}
+	elsif($type eq 'Struct')
+	{
+		$value = $ini_object->get($section, 'TypeId', '');
+		
+		if(($stype == FIELD_LIST) and (lc($value) eq 'listindex'))
+		{ $value = scalar @{$struct->{Value}}; }
+		
+		my $new_struct = Bioware::GFF::Struct->new();
+		$new_struct->{StructIndex} = $gff->{highest_struct};
+		$gff->{highest_struct} += 1;
+		$my_index = ($gff->{highest_struct} - 1);
+		
+		if(looks_like_number($value))
+		{ $new_struct->{'ID'} = $value; }
 
-			foreach my $key (@iniFields) {
-				if(substr($key, 0, 8) eq 'AddField') {
-					$subSection = $ini_object->get($section, $key, '');	
-					AddGFFSubFields($new_struct, $subSection, '');
-				}
+		foreach my $key (@iniFields) {
+			if(substr($key, 0, 8) eq 'AddField') {
+				$subSection = $ini_object->get($section, $key, '');	
+				AddGFFSubFields($new_struct, $subSection, '');
 			}
-			
-			push(@{$struct->{Value}}, $new_struct);
 		}
-		elsif($type eq 'List')
-		{ 
-			# Set FieldList value as empty array
-			# Recurse any AddField ini params
-			
-			$struct->createField('Type'=>FIELD_LIST, 'Label'=>$key, 'Value'=>[]);
-			$myField = $struct->get_field_by_label($key);
+		
+		push(@{$struct->{Value}}, $new_struct);
+	}
+	elsif($type eq 'List')
+	{ 
+		# Set FieldList value as empty array
+		# Recurse any AddField ini params
+		
+		$struct->createField('Type'=>FIELD_LIST, 'Label'=>$key, 'Value'=>[]);
+		$myField = $struct->get_field_by_label($key);
 
-			foreach my $key (@iniFields) {
-				if(substr($key, 0, 8) eq 'AddField') {
-					# Get the ini sub section for this AddField and recurse
-					$subSection = $ini_object->get($section, $key, '');	
-					AddGFFSubFields($myField, $subSection, '');	
-				}
+		foreach my $key (@iniFields) {
+			if(substr($key, 0, 8) eq 'AddField') {
+				# Get the ini sub section for this AddField and recurse
+				$subSection = $ini_object->get($section, $key, '');	
+				AddGFFSubFields($myField, $subSection, '');	
 			}
 		}
-		else
-		{
-			ProcessMessage(Format($Messages{LS_LOG_GFFINVALIDTYPEDATA}, $type, $section, (split(/(\\|\/)/, $gff->{filename}))[-1]), LOG_LEVEL_ALERT);
-			return 0;
-		}
+	}
+	else
+	{
+		ProcessMessage(Format($Messages{LS_LOG_GFFINVALIDTYPEDATA}, $type, $section, (split(/(\\|\/)/, $gff->{filename}))[-1]), LOG_LEVEL_ALERT);
+		return 0;
+	}
 }
 
 sub DecodeFieldType
@@ -3626,10 +3626,10 @@ sub ChangeGFFFieldValue
 	my $old_value = undef;
 
 	# TSL Patcher 1.2.9b saved some fields as lowercase. No idea if it makes a difference.
-	if ($path eq 'Script' || $path eq 'Sound' || $path eq 'StuntModel') {
+	if ($path eq 'Script' || $path eq 'Sound' || $path eq 'StuntModel' || $path eq 'VO_ResRef') {
 		$value = lc($value);
 	}
-	
+
 	if($path ne '')
 	{
 #		print "path2: $path\n";
