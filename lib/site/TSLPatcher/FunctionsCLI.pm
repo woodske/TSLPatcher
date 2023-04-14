@@ -2785,7 +2785,7 @@ sub DoGFFList
 							$skip = 1;
 						}
 						if(substr($key, 0, 8) eq 'AddField')
-						{
+						{							
 							my @v = AddGFFField($gff, $value, '');
 							if($v[0] == 1)
 							{				
@@ -3415,14 +3415,10 @@ sub AddGFFField
 			# Set FieldList value as empty array
 			# Recurse any AddField ini params
 
-			use Data::Dumper;
-
-			
-			
 			$struct->createField('Type'=>FIELD_LIST, 'Label'=>$key, 'Value'=>[]);
 			$myField = $struct->get_field_by_label($key);
 
-			foreach my $key (@iniFields) {
+			foreach my $key (@lines1) {
 				if(substr($key, 0, 8) eq 'AddField') {
 					# Get the ini sub section for this AddField and recurse
 					$subSection = $ini_object->get($section, $key, '');	
@@ -3569,7 +3565,7 @@ sub AddGFFSubFields
 		foreach my $key (@iniFields) {
 			if(substr($key, 0, 8) eq 'AddField') {
 				# Get the ini sub section for this AddField and recurse
-				$subSection = $ini_object->get($section, $key, '');	
+				$subSection = $ini_object->get($section, $key, '');
 				AddGFFSubFields($myField, $subSection, '');	
 			}
 		}
@@ -3641,7 +3637,7 @@ sub ChangeGFFFieldValue
 					# print ref($struct->{Fields}) . "\n";
 					if(ref($struct->{Fields}) eq 'ARRAY')
 					{
-						print "1 ";
+						# print "1 ";
 						$struct = $struct->{Fields}[$struct->get_field_ix_by_label($_)];
 						$stype = $struct->{Type};
 						if ($struct->{Type} == undef or $struct->{Type} eq '') { $stype = FIELD_STRUCT; }
