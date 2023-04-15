@@ -54,7 +54,6 @@ my $install_info = 'info.rtf';
 my $install_ini  = 'changes.ini';
 my $install_dest_path = undef;
 my $ini_object    = Config::IniMan->new();
-my $uninstall_ini = Config::IniMan->new();
 my $bInstalled   = 0;
 my $namespaceProcessed =0;
 
@@ -590,18 +589,7 @@ sub ProcessInstallPath
 		if(-e "$install_path/$install_info")
 		{
 			$ini_object->read($install_path . "\\$install_ini");
-			$uninstall_ini->add_section("Settings");
-			
-			foreach($ini_object->section_params('Settings'))
-			{ $uninstall_ini->set('Settings', $_, $ini_object->get('Settings', $_, '')); }
-			
-			$uninstall_ini->add_section("TLKList");
-			$uninstall_ini->add_section("InstallList");
-			$uninstall_ini->add_section("2DAList");
-			$uninstall_ini->add_section("GFFList");
-			$uninstall_ini->add_section("CompileList");
-			$uninstall_ini->add_section("SSFList");
-			$uninstall_ini->add_section("HACKList");
+
 			$InstallInfo{caption}    = $ini_object->get('Settings', 'WindowCaption', $Messages{LS_GUI_DEFAULTCAPTION});
 			$InstallInfo{FileExists} = $ini_object->get('Settings', 'FileExists', 0);
 			$InstallInfo{bInstall}   = $ini_object->get('Settings', 'InstallerMode', 0);
@@ -1388,10 +1376,6 @@ sub DoTLKList
 					foreach(0 .. ($change_count - 1))
 					{
 						$section = $tlk_data{"Change$_"};
-						$uninstall_ini->set("TLKList", "Change$_", $section);
-						
-						if($uninstall_ini->section_exists($section) == 0)
-						{ $uninstall_ini->add_section($section); }
 						
 						if(($ini_object->get($section, '!Entry', '-1')) < 0)
 						{
@@ -1402,12 +1386,9 @@ sub DoTLKList
 						ProcessMessage(Format($Messages{LS_TLK_CHANGENUM}, $_), LOG_LEVEL_VERBOSE);
 					
 						my $entry = $ini_object->get($section, '!Entry');
-						$uninstall_ini->set($section, '!Entry', $entry);
 						
 						foreach($ini_object->section_params($section))
-						{
-							$uninstall_ini->set($section, $_, $ini_object->get($section, $_, ''));
-							
+						{							
 							if($dialog eq 'dialogf.tlk')
 							{
 								if(lc($_) eq 'textf') { $tlk_dialog->edit_entry($entry, 'Text', $ini_object->get($section, $_, $ini_object->get($section, 'Text'))); }
@@ -1466,7 +1447,6 @@ sub DoTLKList
 							$count++;
 							$added++;
 							ProcessMessage(Format($Messages{LS_LOG_APPENDTLKENTRY}, $dialog, $new), LOG_LEVEL_VERBOSE);
-							$uninstall_ini->set('TLKList', "Delete$_", $new);
 						}
 						
 						if(defined($tlk_data{$entry}) == 1)
@@ -1595,7 +1575,6 @@ sub DoInstallFiles
 	{
 		@lines2 = ();
 		$folder = $ini_object->get('InstallList', $section);
-		$uninstall_ini->set('InstallList', $section, $folder);
 		
 		$IsArchive = 0;
 		# If this is a file, it must be an ERF or RIM, and it must exist.
@@ -1618,10 +1597,7 @@ sub DoInstallFiles
 		else                  { $foldername = $folder; }
 		
 		if($folder ne '' and ($folder =~ /\.\.\\/) == 0)
-		{
-			if($uninstall_ini->section_exists($section) == 0)
-			{ $uninstall_ini->add_section($section); }
-			
+		{			
 			if($IsArchive == 0 and (-e "$install_dest_path\\$folder") == 0)
 			{
 				ProcessMessage(Format($Messages{LS_LOG_INSCREATEFOLDER}, "$install_dest_path\\$folder"), LOG_LEVEL_INFORMATION);
@@ -1740,13 +1716,6 @@ sub DoInstallFiles
 										MakeBackup("$install_dest_path\\$folder\\$file", "$folder");
 									}
 									
-									$uninstall_ini->set($section, "Replace$repnum", $filename);
-									
-									if($uninstall_ini->section_exists($filename) == 0)
-									{ $uninstall_ini->add_section($filename); }
-									
-									$uninstall_ini->set($filename, '!SourceFile', $filename);
-									$uninstall_ini->set($filename, '!SaveAs', $filename);
 									$repnum++;
 									
 									unlink("$install_dest_path\\$folder\\$file");
@@ -1772,13 +1741,6 @@ sub DoInstallFiles
 							}
 							else # The file doesn't exist, just copy it over.
 							{
-								$uninstall_ini->set($section, "Delete$delnum", $filename);
-								
-								if($uninstall_ini->section_exists($filename) == 0)
-								{ $uninstall_ini->add_section($filename); }
-								
-								$uninstall_ini->set($filename, '!SourceFile', $filename);
-								$uninstall_ini->set($filename, '!SaveAs', $filename);
 								$delnum++;
 								
 								File::Copy::copy("$install_path\\$sourcefile", "$install_dest_path\\$folder\\$file");
@@ -1800,13 +1762,6 @@ sub DoInstallFiles
 							{
 								if(lc(substr($key, 0, 7)) eq 'replace') # It will be replaced, though.
 								{
-									$uninstall_ini->set($section, "Replace$repnum", $filename);
-									
-									if($uninstall_ini->section_exists($filename) == 0)
-									{ $uninstall_ini->add_section($filename); }
-									
-									$uninstall_ini->set($filename, '!SourceFile', $filename);
-									$uninstall_ini->set($filename, '!SaveAs', $filename);
 									$repnum++;
 									
 									unlink("$install_path\\$ERF_name\\$file");
@@ -1829,13 +1784,6 @@ sub DoInstallFiles
 							}
 							else
 							{
-								$uninstall_ini->set($section, "Delete$delnum", $filename);
-								
-								if($uninstall_ini->section_exists($filename) == 0)
-								{ $uninstall_ini->add_section($filename); }
-								
-								$uninstall_ini->set($filename, '!SourceFile', $filename);
-								$uninstall_ini->set($filename, '!SaveAs', $filename);
 								$delnum++;
 								
 								File::Copy::copy("$install_path\\$sourcefile", "$install_path\\$ERF_name\\$file");
@@ -1893,9 +1841,6 @@ sub Do2DAList
 	foreach $filename (@lines1)
 	{		
 		@lines2 = ();
-		
-		if($uninstall_ini->section_exists($filename) == 0)
-		{ $uninstall_ini->add_section($filename); }
 		
 		my @answer = ExecuteFile($filename, 'file2DA');
 		
@@ -2280,15 +2225,9 @@ sub Delete2daRow
 		return -1;
 	}
 	
-	my $un_section = (split(/\./, $twoda->{filename}))[0] . "_row_delete_$section_0";
-	
-	if($uninstall_ini->section_exists($un_section) == 0)
-	{ $uninstall_ini->add_section($un_section); }
-	
 	ProcessMessage(Format($Messages{LS_LOG_2DADELETINGROW}, $modify_row, $twoda->{filename}), LOG_LEVEL_VERBOSE);
 	foreach(@{$twoda->{columns}})
 	{
-		$uninstall_ini->set($un_section, $_, $twoda->get_cell($row, $_));
 		$twoda->change_cell($row, $_, "****");
 	}
 	
@@ -2491,18 +2430,6 @@ sub Delete2daColumn
 	
 	if($section ~~ @{$twoda->{columns}})
 	{
-		my $un_section = (split(/\./, $twoda->{filename}))[0] . "_col_delete_$section_0";
-		
-		if($uninstall_ini->section_exiss($un_section) == 0)
-		{ $uninstall_ini->add_section($un_section); }
-		
-		$uninstall_ini->set($un_section, "ColumnLabel", $section);
-		
-		foreach($twoda->{rows_array})
-		{
-			$uninstall_ini->set($un_section, $_, $twoda->get($_, $section));
-		}
-		
 		$twoda->delete_column($section);
 		ProcessMessage(Format($Messages{LS_LOG_2DDELETINGCOLUMN}, $section, $twoda->{filename}), LOG_LEVEL_VERBOSE);
 		
@@ -2751,11 +2678,7 @@ sub DoGFFList
 				ProcessMessage(Format($Messages{LS_LOG_GFFMODIFYINGFILE}, (split(/\//, $answer[1]))[-1]), LOG_LEVEL_INFORMATION);
 				
 				if((scalar @lines2) > 0)
-				{
-					my $un_section = (split(/\//, $answer[1]))[-1];
-					if($uninstall_ini->section_exists($un_section) == 0)
-					{ $uninstall_ini->add_section($un_section); }
-					
+				{		
 					foreach $key (@lines2)
 					{
 						$value = $ini_object->get($piece_value, $key, '');				
@@ -2808,9 +2731,7 @@ sub DoGFFList
 							my @v = ChangeGFFFieldValue($gff, $key, $value);							
 							# print "\n$gff, $key, $value";
 							if($v[0] == 1)
-							{
-								$uninstall_ini->set($un_section, $key, $v[1]);
-								
+							{							
 								ProcessMessage(Format($Messages{LS_LOG_GFFMODIFIEDVALUE}, $value, $key, (split(/\//, $answer[1]))[-1]), LOG_LEVEL_VERBOSE);
 								$changes++;
 							}
@@ -3844,10 +3765,6 @@ sub ProcessHACKFile
 	my $replace = 0;
 	my @data    = ();
 	
-	$uninstall_ini->set('HACKList', $index, $filename);
-	if($uninstall_ini->section_exists($filename) == 0)
-	{ $uninstall_ini->add_section($filename); }
-	
 	foreach($ini_object->section_params($filename))
 	{
 		if($_ ne '' and (($_ =~ /__SKIP__/) == 0) and (($_ =~ /^\;/) == 0))
@@ -3888,14 +3805,7 @@ sub ProcessHACKFile
 		foreach $piece (@data)
 		{
 			$piece_value = $ini_object->get($filename, $piece, '');
-			if($piece_value =~ /\"(.*)\"/) { $piece_value = $1; }
-			
-			if(lc($piece) eq 'replacefile')
-			{ $uninstall_ini->set($filename, $piece, $piece_value); } # Do nothing.
-			if(lc(substr($piece, 0, 11)) eq '!sourcefile')
-			{ $uninstall_ini->set($filename, $piece, $piece_value);  } # Do nothing.
-			if(lc(substr($piece, 0, 7)) eq '!saveas')
-			{ $uninstall_ini->set($filename, $piece, $piece_value);  } # Do nothing.
+			if($piece_value =~ /\"(.*)\"/) { $piece_value = $1; }			
 			
 			if(GetIsStringToken($piece_value))
 			{ $piece_value = ProcessStrRefToken($piece_value); }
@@ -3911,7 +3821,6 @@ sub ProcessHACKFile
 					
 					sysseek FH, $piece, 0;
 					sysread FH, my $chunk, length($piece_value);
-					$uninstall_ini->set($filename, $piece, $chunk);
 					# substr($chunk, 0, length($chunk), $piece_value);
 					# sysseek FH, $piece, 0;
 					syswrite FH, $piece_value;
