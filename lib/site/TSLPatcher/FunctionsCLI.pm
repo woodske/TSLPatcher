@@ -957,12 +957,7 @@ sub ExecuteFile
 				}
 				
 				# exit();
-				# Make a backup in the Backup folder
-				if((MakeBackup("$dest", 'modules')) == 1)
-				{
-					ProcessMessage(Format($Messages{LS_LOG_INSBACKUPFILE}, $ERF_name, $install_path . "\\backup\\"), LOG_LEVEL_INFORMATION);
-				}
-				
+			
 				# Now pull everything into a sub-folder named after the level
 				# itself. This way we aren't having to deal with the data in
 				# memory...
@@ -1053,7 +1048,6 @@ sub ExecuteFile
 					{
 						if((-e "$install_path/backup/override/$temp") == 0)
 						{
-							MakeBackup("$install_path/override/$temp", 'override');
 							ProcessMessage(Format($Messages{LS_LOG_FHBACKUPSCRIPT}, $filename), LOG_LEVEL_INFORMATION);
 						}
 					}
@@ -1069,10 +1063,7 @@ sub ExecuteFile
 			if(-e "$install_path/$sourcefile")
 			{
 				if(-e "$install_dest_path/$destination/$saveasfile")
-				{
-					if($InstallInfo{Backups} == 1)
-					{ MakeBackup("$install_dest_path/$destination/$saveasfile", $destination); }
-					
+				{					
 					unlink("$install_dest_path/$destination/$saveasfile");
 					ProcessMessage(Format($Messages{LS_LOG_FHUPDATEREPLACE}, $saveasfile), LOG_LEVEL_INFORMATION);
 				}
@@ -1194,32 +1185,6 @@ sub IsValidArchive
 	elsif($header eq 'SAV V1.0') { return 1; }
 	elsif($header eq 'RIM V1.0') { return 1; }
 	else                         { return 0; }
-}
-
-# Make backups in the backup folder.
-sub MakeBackup
-{
-	my ($file, $folder) = @_;
-
-	# print "File: $file\n";
-	$file =~ /(.*)(\\|\/)(.*?)$/;
-	my $filename = $3;
-	my $backup_path = $install_path;
-	$backup_path =~ s#\\#\/#g;
-	my @a = split(/\//, $backup_path);
-	# print "Backup1: $backup_path\n";
-	my $a_count = scalar @a;
-	# print "Backup_count: $a_count\n";
-	$a_count -= 2;
-	$backup_path = join("/", @a[0 .. $a_count]);
-	# print "Backup2: $backup_path\n";
-
-	if((-e "$backup_path\\backup") == 0) { make_path("$backup_path\\backup", {chmod=>0777, user=>$user}); }
-	if((-e "$backup_path\\backup\\$folder") == 0) { make_path("$backup_path\\backup\\$folder", {chmod=>0777, user=>$user}); }
-	
-	$folder = "\\$folder\\";
-	# print "Making a backup at: \n" . "$base\\backup" . $folder . $filename . "\n\n";
-	return File::Copy::copy($file, "$backup_path\\backup" . $folder . $filename);
 }
 
 # Check for files in the Override when adding to ERF or RIM packages.
@@ -1457,12 +1422,7 @@ sub DoTLKList
 				}
 				
 				if($count > 0)
-				{
-					if(MakeBackup($answer[1], '') == 1)
-					{
-						ProcessMessage(Format($Messages{LS_LOG_MAKETLKBACKUP}, $dialog, "$install_path\\backup"), LOG_LEVEL_INFORMATION);
-					}
-					
+				{					
 					$tlk_dialog->save_tlk($answer[1]);
 					
 					if(($added > 0) and ($reused > 0))
@@ -1647,12 +1607,6 @@ sub DoInstallFiles
 						
 						if(($folder ~~ @ERFs) == 0) { push(@ERFs, $folder); }
 					}
-
-					# Make a backup in the Backup folder
-					if((MakeBackup("$install_dest_path\\$folder", 'modules')) == 1)
-					{
-						ProcessMessage(Format($Messages{LS_LOG_INSBACKUPFILE}, $ERF_name, $install_path . "\\backup\\"), LOG_LEVEL_INFORMATION);
-					}
 					
 					# Now pull everything into a sub-folder named after the level
 					# itself. This way we aren't having to deal with the data in
@@ -1710,12 +1664,7 @@ sub DoInstallFiles
 										ProcessMessage(Format($Messages{LS_LOG_INSBIFTHEUNDERSTUDY}, $file), LOG_LEVEL_ALERT);
 										next;
 									}
-									
-									if($InstallInfo{Backups} == 1) # Make a backup
-									{
-										MakeBackup("$install_dest_path\\$folder\\$file", "$folder");
-									}
-									
+																		
 									$repnum++;
 									
 									unlink("$install_dest_path\\$folder\\$file");
@@ -2746,22 +2695,7 @@ sub DoGFFList
 					}
 					
 					if($changes > 0)
-					{
-						if($PatchType eq 'fileGFF')
-						{
-							if(MakeBackup($answer[1], ''))
-							{
-								ProcessMessage(Format($Messages{LS_LOG_GFFBACKUPFILE}, (split(/\//, $answer[1]))[-1], "$base/backup"), LOG_LEVEL_INFORMATION);
-							}
-						}
-						else
-						{
-							if(MakeBackup("$install_dest_path/$Destination", 'modules'))
-							{
-								ProcessMessage(Format($Messages{LS_LOG_GFFBACKUPDEST}, (split(/(\\|\/)/, $Destination))[-1], "$base/backup"), LOG_LEVEL_INFORMATION);
-							}
-						}
-						
+					{						
 						ProcessMessage(Format($Messages{LS_LOG_GFFMODFIELDSUMMARY}, $changes, (split(/(\\|\/)/, $answer[1]))[-1]), LOG_LEVEL_VERBOSE);
 
 						$gff->write_gff_file($answer[1]);
@@ -2806,13 +2740,7 @@ sub DoGFFList
 									
 									if(("modules/$ERF_name" ~~ @ERFs) == 0) { push(@ERFs, "modules/$ERF_name"); }
 								}
-								
-								# Make a backup in the Backup folder
-								if((MakeBackup("$install_dest_path\\$folder", 'modules')) == 1)
-								{
-									ProcessMessage(Format($Messages{LS_LOG_NCSDESTBACKUP}, $ERF_name, $install_path . "\\backup\\"), LOG_LEVEL_INFORMATION);
-								}
-								
+																
 								# Now pull everything into a sub-folder named after the level
 								# itself. This way we aren't having to deal with the data in
 								# memory...
@@ -3793,11 +3721,6 @@ sub ProcessHACKFile
 			return;
 		}
 		
-		if(MakeBackup($file, '') == 1)
-		{
-			ProcessMessage(Format($Messages{LS_LOG_HAKBACKUPFILE}, (split(/\//, $file))[1], $install_path . '/backup'), LOG_LEVEL_INFORMATION);
-		}
-		
 		open FH, "+<", $file;
 		binmode FH;
 		
@@ -3950,12 +3873,7 @@ sub DoCompileFiles
 						$ERF_name = substr($ERF_name, 0, (length($ERF_name) - 4));
 						
 						if(-e "$install_path/$ERF_name")
-						{
-							if(((-e "$install_path/$ERF_name/$NCSFile") == 1) and ($InstallInfo{Backups} = 1))
-							{
-								MakeBackup("$install_path/$ERF_name/$NCSFile", $ERF_name);
-							}
-							
+						{							
 							if(((-e "$install_path/$ERF_name/$NCSFile") == 1) and ($overwrite == 0))
 							{
 								ProcessMessage(Format($Messages{LS_LOG_NCSFILEEXISTSKIP}, (split(/\//, $NCSFile))[-1], (split(/\//, $dest))[-1]), LOG_LEVEL_ALERT);
@@ -4001,12 +3919,6 @@ sub DoCompileFiles
 								if(("modules/$ERF_name" ~~ @ERFs) == 0) { push(@ERFs, "modules/$ERF_name"); }
 							}
 							
-							# Make a backup in the Backup folder
-							if((MakeBackup("$install_dest_path\\$folder", 'modules')) == 1)
-							{
-								ProcessMessage(Format($Messages{LS_LOG_NCSDESTBACKUP}, $ERF_name, $install_path . "\\backup\\"), LOG_LEVEL_INFORMATION);
-							}
-							
 							# Now pull everything into a sub-folder named after the level
 							# itself. This way we aren't having to deal with the data in
 							# memory...
@@ -4018,12 +3930,7 @@ sub DoCompileFiles
 							foreach(@{$ERF->{Files}})
 							{
 								$ERF->export_resource_by_index($ERF->get_resource_id_by_name($_), "$install_path\\$ERF_name\\$_");
-							}
-							
-							if(((-e "$install_path/$ERF_name/$NCSFile") == 1) and ($InstallInfo{Backups} = 1))
-							{
-								MakeBackup("$install_path/$ERF_name/$NCSFile", $ERF_name);
-							}
+							}							
 							
 							if(((-e "$install_path/$ERF_name/$NCSFile") == 1) and ($overwrite == 0))
 							{
