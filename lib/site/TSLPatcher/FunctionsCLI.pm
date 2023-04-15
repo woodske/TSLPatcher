@@ -2726,6 +2726,9 @@ sub DoGFFList
 		}
 		
 		$Destination = $ini_object->get($piece_value, '!Destination', 'override');
+
+		# community patch had a file with 'Module\' instead of 'module\' and it reloaded the entire module
+		$Destination = lc($Destination);
 		
 		if(lc($Destination) eq 'override') { $PatchType = 'fileGFF';    }
 		else                               { $PatchType = 'fileGFFERF'; }
