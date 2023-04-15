@@ -2718,7 +2718,11 @@ sub DoGFFList
 		}
 		else
 		{
-			$filename = $ini_object->get($piece_value, '!Filename', $piece_value);
+			$filename = $ini_object->get($piece_value, '!Filename');
+			# community patch has some entries with 'filename'. default to piece_value if not found.
+			if ($filename eq '') {
+				$filename = $ini_object->get($piece_value, '!filename', $piece_value);
+			}
 		}
 		
 		$Destination = $ini_object->get($piece_value, '!Destination', 'override');
@@ -2810,7 +2814,7 @@ sub DoGFFList
 							else
 							{
 								# Ignore warnings for being unable to find '!Filename' in GFF file
-								if ($key ne "!Filename") {
+								if (lc($key) ne "!filename") {
 									ProcessMessage(Format($Messages{LS_LOG_GFFINCORRECTLABEL}, $key, (split(/\//, $answer[1]))[-1]), LOG_LEVEL_ALERT);
 								}							
 							}
